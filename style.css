@@ -99,3 +99,26 @@
       min-height: 150px;
       white-space: pre;
     }
+
+   .antibiotic-filters {
+       display: flex;
+       flex-wrap: wrap;
+       gap: 6px;
+       margin-bottom: 10px;
+   }
+   
+   .antibiotic-btn {
+       border: 1px solid #ccc;
+       border-radius: 16px;
+       padding: 4px 10px;
+       font-size: 0.85rem;
+       background-color: #f5f5f5;
+       cursor: pointer;
+       transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+   }
+   
+   .antibiotic-btn.selected {
+       background-color: #1976d2;
+       border-color: #1976d2;
+       color: #fff;
+   }
