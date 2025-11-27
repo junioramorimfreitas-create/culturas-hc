@@ -69,29 +69,29 @@
       margin: 12px 0;
     }
 
-    button {
-      padding: 8px 16px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.9rem;
-      background: #2563eb;
-      color: #ffffff;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-      transform: translateY(-1px);
-      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
-    }
-
     button:active {
       transform: translateY(0);
       box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
+
+      button.primary-btn {
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        background: #2563eb;
+        color: #ffffff;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+      }
+      
+      button.primary-btn:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+      }
 
     #output {
       background: #111827;
