@@ -45,7 +45,28 @@ function applyAntibioticFilter() {
 }
 
 // Ativa o comportamento dos botões de antibiótico (se existirem no HTML)
-const antibioticButtons = document.querySelectorAll(".antibiotic-btn");
+const antibioticButtons = document.querySelectorAll(
+  ".antibiotic-btn[data-antibiotico]"
+);
+
+function setAllAntibiotics(selected) {
+  selectedAntibiotics.clear();
+
+  antibioticButtons.forEach((btn) => {
+    const label = (btn.dataset.antibiotico || "").trim();
+    if (!label) return;
+
+    const key = label.toLowerCase();
+    if (selected) {
+      selectedAntibiotics.add(key);
+      btn.classList.add("selected");
+    } else {
+      btn.classList.remove("selected");
+    }
+  });
+
+  applyAntibioticFilter();
+}
 
 function setAllAntibiotics(selected) {
   selectedAntibiotics.clear();
