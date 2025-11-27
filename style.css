@@ -60,13 +60,20 @@
       margin-bottom: 12px;
     }
 
-    .controls {
+   .controls {
+     display: flex;
+     flex-wrap: wrap;
+     gap: 8px;
+     align-items: center;
+     justify-content: space-between;
+     margin: 12px 0;
+   }
+
+    .antibiotic-actions {
       display: flex;
-      flex-wrap: wrap;
       gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-      margin: 12px 0;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
     }
 
     button:active {
@@ -83,11 +90,11 @@
         font-size: 0.9rem;
         background: #2563eb;
         color: #ffffff;
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
-        transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
-      }
-      
-      button.primary-btn:hover {
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+    }
+
+    button.primary-btn:hover {
         background: #1d4ed8;
         transform: translateY(-1px);
         box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
@@ -122,8 +129,24 @@
        background-color: #e8e8e8;
    }
    
-   .antibiotic-btn.selected {
+    .antibiotic-btn.selected {
        background-color: #1976d2;
        border-color: #1976d2;
        color: #fff !important;
-   }
+    }
+
+     .secondary-btn {
+       padding: 6px 12px;
+       border-radius: 10px;
+       border: 1px solid #d1d5db;
+       background: #ffffff;
+       color: #111827;
+       cursor: pointer;
+       font-size: 0.85rem;
+       transition: background-color 0.12s ease, border-color 0.12s ease;
+     }
+
+     .secondary-btn:hover {
+       background: #f3f4f6;
+       border-color: #9ca3af;
+     }

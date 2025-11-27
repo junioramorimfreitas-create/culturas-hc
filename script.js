@@ -33,8 +33,38 @@ const selectedAntibiotics = new Set();
 // guardamos o texto formatado completo para poder refiltrar sem recalcular
 let lastFormattedText = "";
 
+function applyAntibioticFilter() {
+  const outputEl = document.getElementById("output");
+  if (lastFormattedText && outputEl) {
+    const filtered = filterFormattedByAntibiotics(
+      lastFormattedText,
+      selectedAntibiotics
+    );
+    outputEl.value = filtered;
+  }
+}
+
 // Ativa o comportamento dos botões de antibiótico (se existirem no HTML)
 const antibioticButtons = document.querySelectorAll(".antibiotic-btn");
+
+function setAllAntibiotics(selected) {
+  selectedAntibiotics.clear();
+
+  antibioticButtons.forEach((btn) => {
+    const label = (btn.dataset.antibiotico || "").trim();
+    if (!label) return;
+
+    const key = label.toLowerCase();
+    if (selected) {
+      selectedAntibiotics.add(key);
+      btn.classList.add("selected");
+    } else {
+      btn.classList.remove("selected");
+    }
+  });
+
+  applyAntibioticFilter();
+}
 
 antibioticButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -53,17 +83,19 @@ antibioticButtons.forEach((btn) => {
       btn.classList.add("selected");
     }
 
-    // Se já temos texto formatado, reaplica o filtro na hora
-    const outputEl = document.getElementById("output");
-    if (lastFormattedText && outputEl) {
-      const filtered = filterFormattedByAntibiotics(
-        lastFormattedText,
-        selectedAntibiotics
-      );
-      outputEl.value = filtered;
-    }
+    applyAntibioticFilter();
   });
 });
+
+const selectAllBtn = document.getElementById("selectAllAntibiotics");
+if (selectAllBtn) {
+  selectAllBtn.addEventListener("click", () => setAllAntibiotics(true));
+}
+
+const deselectAllBtn = document.getElementById("deselectAllAntibiotics");
+if (deselectAllBtn) {
+  deselectAllBtn.addEventListener("click", () => setAllAntibiotics(false));
+}
 
 /**
  * Filtra o texto já formatado, removendo os antibióticos
