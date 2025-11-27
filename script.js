@@ -375,51 +375,23 @@ function parseCultures(text) {
 
     // Linhas do antibiograma
     if (currentCulture && currentCulture.parsingAntibiogram) {
-      const tokens = line.split(/\s+/);
-      if (tokens.length < 2) continue;
+      const cols = line.trim().split(/\s{2,}/);
+      if (cols.length < 2) continue;
 
-      // 1) identificar apenas classes S / R / I / D
-      let classIndices = [];
-      for (let i = 0; i < tokens.length; i++) {
-        if (/^[SRID]$/i.test(tokens[i])) {
-          classIndices.push({ idx: i, val: tokens[i].toUpperCase() });
-        }
-      }
-      if (!classIndices.length) continue;
+      const abName = toTitleCase(cols[0]);
 
-      const firstClassIdx = classIndices[0].idx;
+      for (let i = 1; i <= 3; i++) {
+        const col = (cols[i] || "").trim();
+        if (!col) continue;
 
-      // 2) montar o nome do antibiótico SEM MIC
-      let nameTokens = tokens.slice(0, firstClassIdx); // tudo antes do S/R/I/D
+        const m = col.match(/\b([SRID])\b/i);
+        if (!m) continue;
 
-      // função auxiliar: detecta tokens que são MIC (número, número com vírgula, >=, <=)
-      const isMicToken = (tok) => {
-        if (!tok) return false;
-        // >=, <=
-        if (/^([<>]=?)$/.test(tok)) return true;
-        // números tipo 4, 16, 0,25, 0.5
-        if (/^\d+(?:[.,]\d+)?$/.test(tok)) return true;
-        return false;
-      };
-
-      // remove possíveis MICs do final do nome (ex.: "Amicacina 4" -> "Amicacina")
-      while (nameTokens.length > 1 && isMicToken(nameTokens[nameTokens.length - 1])) {
-        nameTokens.pop();
-      }
-
-      let abName = nameTokens.join(" ").trim();
-
-      // Coloca em "Title Case" (mantendo + e /)
-      abName = toTitleCase(abName);
-
-      const nOrgs = Math.max(1, currentCulture.orgs.length);
-
-      for (let k = 0; k < Math.min(nOrgs, classIndices.length); k++) {
-        const cls = classIndices[k].val;
+        const cls = m[1].toUpperCase();
         const org =
-          currentCulture.orgs[k] ||
-          (currentCulture.orgs[k] = {
-            name: "Organismo " + (k + 1),
+          currentCulture.orgs[i - 1] ||
+          (currentCulture.orgs[i - 1] = {
+            name: "Organismo " + i,
             ufc: null,
             R: [],
             S: [],
