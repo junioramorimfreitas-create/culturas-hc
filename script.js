@@ -302,6 +302,7 @@ function parseCultures(text) {
           R: [],
           S: [],
           I: [],
+          D: [],
         });
         continue;
       }
@@ -333,52 +334,70 @@ function parseCultures(text) {
       continue;
     }
 
-    // Linhas do antibiograma
-    if (currentCulture && currentCulture.parsingAntibiogram) {
-      const tokens = line.split(/\s+/);
-      if (tokens.length < 2) continue;
 
-      // procura letras de interpretação S/R/I
-      let classIndices = [];
-      for (let i = 0; i < tokens.length; i++) {
-        if (/^[SRI]$/i.test(tokens[i])) {
-          classIndices.push({ idx: i, val: tokens[i].toUpperCase() });
-        }
-      }
-      if (!classIndices.length) continue;
+// Linhas do antibiograma
+if (currentCulture && currentCulture.parsingAntibiogram) {
+  const tokens = line.split(/\s+/);
+  if (tokens.length < 2) continue;
 
-      const firstClassIdx = classIndices[0].idx;
-
-      // pega o nome inteiro até a primeira letra de classe
-      let abName = tokens.slice(0, firstClassIdx).join(" ").trim();
-
-      // Remove símbolos >= ou <= que grudaram no nome
-      abName = abName.replace(/\s*[<>]=/g, "").trim();
-
-      // Coloca em "Title Case"
-      abName = toTitleCase(abName);
-
-      const nOrgs = Math.max(1, currentCulture.orgs.length);
-
-      for (let k = 0; k < Math.min(nOrgs, classIndices.length); k++) {
-        const cls = classIndices[k].val;
-        const org =
-          currentCulture.orgs[k] ||
-          (currentCulture.orgs[k] = {
-            name: "Organismo " + (k + 1),
-            ufc: null,
-            R: [],
-            S: [],
-            I: [],
-          });
-
-        if (cls === "S") org.S.push(abName);
-        else if (cls === "R") org.R.push(abName);
-        else if (cls === "I") org.I.push(abName);
-      }
-      continue;
+  // 1) identificar apenas classes S / R / I / D
+  let classIndices = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (/^[SRID]$/i.test(tokens[i])) {
+      classIndices.push({ idx: i, val: tokens[i].toUpperCase() });
     }
   }
+  if (!classIndices.length) continue;
+
+  const firstClassIdx = classIndices[0].idx;
+
+  // 2) montar o nome do antibiótico SEM MIC
+  let nameTokens = tokens.slice(0, firstClassIdx); // tudo antes do S/R/I/D
+
+  // função auxiliar: detecta tokens que são MIC (número, número com vírgula, >=, <=)
+  const isMicToken = (tok) => {
+    if (!tok) return false;
+    // >=, <=
+    if (/^([<>]=?)$/.test(tok)) return true;
+    // números tipo 4, 16, 0,25, 0.5
+    if (/^\d+(?:[.,]\d+)?$/.test(tok)) return true;
+    return false;
+  };
+
+  // remove possíveis MICs do final do nome (ex.: "Amicacina 4" -> "Amicacina")
+  while (nameTokens.length > 1 && isMicToken(nameTokens[nameTokens.length - 1])) {
+    nameTokens.pop();
+  }
+
+  let abName = nameTokens.join(" ").trim();
+
+  // Coloca em "Title Case" (mantendo + e /)
+  abName = toTitleCase(abName);
+
+  const nOrgs = Math.max(1, currentCulture.orgs.length);
+
+  for (let k = 0; k < Math.min(nOrgs, classIndices.length); k++) {
+    const cls = classIndices[k].val;
+    const org =
+      currentCulture.orgs[k] ||
+      (currentCulture.orgs[k] = {
+        name: "Organismo " + (k + 1),
+        ufc: null,
+        R: [],
+        S: [],
+        I: [],
+        D: [],
+      });
+
+    if (cls === "S") org.S.push(abName);
+    else if (cls === "R") org.R.push(abName);
+    else if (cls === "I") org.I.push(abName);
+    else if (cls === "D") org.I.push(abName);
+  }
+
+  continue;
+}
+  
 
   // Finaliza o último bloco
   finalizeCulture();
