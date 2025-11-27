@@ -68,6 +68,25 @@ function setAllAntibiotics(selected) {
   applyAntibioticFilter();
 }
 
+function setAllAntibiotics(selected) {
+  selectedAntibiotics.clear();
+
+  antibioticButtons.forEach((btn) => {
+    const label = (btn.dataset.antibiotico || "").trim();
+    if (!label) return;
+
+    const key = label.toLowerCase();
+    if (selected) {
+      selectedAntibiotics.add(key);
+      btn.classList.add("selected");
+    } else {
+      btn.classList.remove("selected");
+    }
+  });
+
+  applyAntibioticFilter();
+}
+
 antibioticButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const label = (btn.dataset.antibiotico || "").trim();
