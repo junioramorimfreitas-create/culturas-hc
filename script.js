@@ -25,7 +25,7 @@ function normalizeMaterial(str) {
 }
 
 /* ===============================
-   NOVO: controle de antibióticos
+   CONTROLE DE ANTIBIÓTICOS
    =============================== */
 
 // guardamos os antibióticos selecionados em minúsculo
@@ -67,7 +67,7 @@ antibioticButtons.forEach((btn) => {
 
 /**
  * Filtra o texto já formatado, removendo os antibióticos
- * que NÃO estão selecionados nas listas R:/S:/I:/P:/N:
+ * que NÃO estão selecionados nas listas R:/S:/I:
  *
  * Exemplo de linha:
  * (21/11) Urina: Klebsiella (...) (R: Amicacina, Ciprofloxacina | S: Meropenem)
@@ -85,8 +85,8 @@ function filterFormattedByAntibiotics(text, selectedSet) {
     const trimmed = line.trim();
     if (!trimmed) return line;
 
-    // só mexemos em linhas que têm parênteses com R:/S:/I:/P:/N:
-    if (!/\(.*[RSIPN]\s*:\s*/.test(trimmed)) {
+    // só mexemos em linhas que têm parênteses com R:/S:/I:
+    if (!/\(.*[SRI]\s*:\s*/.test(trimmed)) {
       return line;
     }
 
@@ -103,14 +103,14 @@ function filterFormattedByAntibiotics(text, selectedSet) {
 
     for (const part of parts) {
       // Ex: "R: Amicacina, Ciprofloxacina"
-      const mPart = part.match(/^([RSIPN])\s*:\s*(.+)$/i);
+      const mPart = part.match(/^([SRI])\s*:\s*(.+)$/i);
       if (!mPart) {
         // não parece um bloco de antibiograma, mantém como está
         newParts.push(part);
         continue;
       }
 
-      const cls = mPart[1]; // R / S / I / P / N
+      const cls = mPart[1]; // R / S / I
       const rest = mPart[2];
 
       const abNames = rest.split(",").map((x) => x.trim()).filter(Boolean);
@@ -128,7 +128,7 @@ function filterFormattedByAntibiotics(text, selectedSet) {
       // se não sobrou nada nessa classe, simplesmente removemos esse bloco
     }
 
-    // se não sobrou nenhum bloco (R/S/I/...), removemos os parênteses
+    // se não sobrou nenhum bloco (R/S/I), removemos os parênteses
     if (newParts.length === 0) {
       return before.trimEnd();
     }
@@ -141,7 +141,7 @@ function filterFormattedByAntibiotics(text, selectedSet) {
 }
 
 /* ===============================
-   PARSER DAS CULTURAS (seu código)
+   PARSER DAS CULTURAS
    =============================== */
 
 function parseCultures(text) {
@@ -193,8 +193,6 @@ function parseCultures(text) {
         if (org.R && org.R.length) parts.push("R: " + org.R.join(", "));
         if (org.S && org.S.length) parts.push("S: " + org.S.join(", "));
         if (org.I && org.I.length) parts.push("I: " + org.I.join(", "));
-        if (org.P && org.P.length) parts.push("P: " + org.P.join(", "));
-        if (org.N && org.N.length) parts.push("N: " + org.N.join(", "));
 
         if (parts.length) {
           line += " (" + parts.join(" | ") + ")";
@@ -304,8 +302,6 @@ function parseCultures(text) {
           R: [],
           S: [],
           I: [],
-          P: [],
-          N: [],
         });
         continue;
       }
@@ -342,18 +338,19 @@ function parseCultures(text) {
       const tokens = line.split(/\s+/);
       if (tokens.length < 2) continue;
 
-      // procura letras de interpretação S/R/I/P/N/D
+      // procura letras de interpretação S/R/I
       let classIndices = [];
       for (let i = 0; i < tokens.length; i++) {
-        if (/^[SRIPND]$/i.test(tokens[i])) {
+        if (/^[SRI]$/i.test(tokens[i])) {
           classIndices.push({ idx: i, val: tokens[i].toUpperCase() });
         }
       }
       if (!classIndices.length) continue;
 
       const firstClassIdx = classIndices[0].idx;
-      const nameParts = tokens.slice(0, Math.max(1, firstClassIdx - 1));
-      let abName = nameParts.join(" ");
+
+      // pega o nome inteiro até a primeira letra de classe
+      let abName = tokens.slice(0, firstClassIdx).join(" ").trim();
 
       // Remove símbolos >= ou <= que grudaram no nome
       abName = abName.replace(/\s*[<>]=/g, "").trim();
@@ -373,15 +370,11 @@ function parseCultures(text) {
             R: [],
             S: [],
             I: [],
-            P: [],
-            N: [],
           });
 
         if (cls === "S") org.S.push(abName);
         else if (cls === "R") org.R.push(abName);
         else if (cls === "I") org.I.push(abName);
-        else if (cls === "P") org.P.push(abName);
-        else if (cls === "N") org.N.push(abName);
       }
       continue;
     }
