@@ -373,40 +373,44 @@ function parseCultures(text) {
       continue;
     }
 
-    // Linhas do antibiograma
-    if (currentCulture && currentCulture.parsingAntibiogram) {
-      const cols = line.trim().split(/\s{2,}/);
-      if (cols.length < 2) continue;
-
-      const abName = toTitleCase(cols[0]);
-
-      for (let i = 1; i <= 3; i++) {
-        const col = (cols[i] || "").trim();
-        if (!col) continue;
-
-        const m = col.match(/\b([SRID])\b/i);
-        if (!m) continue;
-
-        const cls = m[1].toUpperCase();
-        const org =
-          currentCulture.orgs[i - 1] ||
-          (currentCulture.orgs[i - 1] = {
-            name: "Organismo " + i,
-            ufc: null,
-            R: [],
-            S: [],
-            I: [],
-            D: [],
-          });
-
-        if (cls === "S") org.S.push(abName);
-        else if (cls === "R") org.R.push(abName);
-        else if (cls === "I") org.I.push(abName);
-        else if (cls === "D") org.D.push(abName);
-      }
-
-      continue;
+  // Linhas do antibiograma
+  if (currentCulture && currentCulture.parsingAntibiogram) {
+    const cols = line.trim().split(/\t+| {2,}/);
+    if (cols.length < 2) continue;
+  
+    let abName = toTitleCase((cols[0] || "").trim());
+    if (!abName) continue;
+  
+    for (let i = 1; i <= 3; i++) {
+      const col = (cols[i] || "").trim();
+      if (!col) continue;
+  
+      const m = col.match(/\b([SRID])\b/i);
+      if (!m) continue;
+  
+      const cls = m[1].toUpperCase();
+      const orgIndex = i - 1;
+  
+      const org =
+        currentCulture.orgs[orgIndex] ||
+        (currentCulture.orgs[orgIndex] = {
+          name: "Organismo " + (orgIndex + 1),
+          ufc: null,
+          R: [],
+          S: [],
+          I: [],
+          D: [],
+        });
+  
+      if (cls === "S") org.S.push(abName);
+      else if (cls === "R") org.R.push(abName);
+      else if (cls === "I") org.I.push(abName);
+      else if (cls === "D") org.D.push(abName);
     }
+  
+    continue;
+  }
+
   } // fim do for que percorre as linhas
 
   // Finaliza o último bloco, se houver
