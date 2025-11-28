@@ -9,7 +9,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>Resumo de  culturas </h1>
+    <h1>Resumo de  culturas</h1>
     <p class="small">
       Cole abaixo o texto bruto do laudo do HC (copia/cola da tela).
     </p>
@@ -51,7 +51,10 @@
   <button type="button" class="antibiotic-btn" data-antibiotico="Levofloxacina">Levofloxacina</button>
   <button type="button" class="antibiotic-btn" data-antibiotico="Amicacina">Amicacina</button>
   <button type="button" class="antibiotic-btn" data-antibiotico="Gentamicina">Gentamicina</button>
+  <button type="button" class="antibiotic-btn" data-antibiotico="Gentamicina (HL)">Gentamicina (HL)</button>
+  <button type="button" class="antibiotic-btn" data-antibiotico="Estreptomicina (HL)">Estreptomicina (HL)</button>
   <button type="button" class="antibiotic-btn" data-antibiotico="Tigeciclina">Tigeciclina</button>
+  <button type="button" class="antibiotic-btn" data-antibiotico="Colistina">Colistina</button>
   <button type="button" class="antibiotic-btn" data-antibiotico="Nitrofurantoina">Nitrofurantoina</button>
   <button type="button" class="antibiotic-btn" data-antibiotico="Eritromicina">Eritromicina</button>
   <button type="button" class="antibiotic-btn" data-antibiotico="Clindamicina">Clindamicina</button>
@@ -73,9 +76,12 @@
       <label for="output"><strong>Texto formatado para o prontuário (saída)</strong></label>
       <textarea id="output" readonly placeholder="O resultado aparecerá aqui..."></textarea>
     </div>
-  </div>
+
+   <button id="copyBtn" class="copy-button">Copiar</button>
 
   <script src="script.js"></script>
+
+  <div id="toast" class="toast">Copiado!</div>
   
 </body>
 </html>
