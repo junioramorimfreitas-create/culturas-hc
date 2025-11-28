@@ -204,3 +204,9 @@
   opacity: 1;
 }
 
+    .citation {
+      font-size: 0.8rem;
+      color: #6b7280;
+      left: 50%;
+      transform: translateX(-50%);
+    }
