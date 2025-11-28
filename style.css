@@ -204,11 +204,11 @@
   opacity: 1;
 }
 
-    .citation {
-      font-size: 0.8rem;
-      color: #6b7280;
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      text-align: center;
-    }
+.citation {
+  position: relative;
+  bottom: 0;
+  margin-top: 40px;
+  text-align: center;
+  font-style: italic;
+  color: #555;
+}
