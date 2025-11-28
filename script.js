@@ -373,24 +373,45 @@ function parseCultures(text) {
       continue;
     }
 
-  // Linhas do antibiograma
+    // Linhas do antibiograma
   if (currentCulture && currentCulture.parsingAntibiogram) {
-    const cols = line.trim().split(/\t+| {2,}/);
+    // Usamos a linha original (com tabs), não só a versão "trim"
+    let raw = rawLine;
+
+    // Se a linha estiver vazia depois de limpar, pula
+    if (!raw || !raw.trim()) continue;
+
+    let cols;
+
+    if (raw.includes("\t")) {
+      // Caso 1: tabela com TABs → preserva colunas vazias
+      cols = raw.split("\t").map((c) => c.trim());
+    } else {
+      // Caso 2: não tem TAB → usa blocos de 2+ espaços como separador
+      cols = raw.trim().split(/\s{2,}/);
+    }
+
+    // precisa ter pelo menos nome + 1 coluna
     if (cols.length < 2) continue;
-  
-    let abName = toTitleCase((cols[0] || "").trim());
+
+    // primeiro campo = nome do antibiótico
+    let abName = (cols[0] || "").trim();
     if (!abName) continue;
-  
+    abName = toTitleCase(abName);
+
+    // colunas 1, 2, 3 → organismos 0, 1, 2
     for (let i = 1; i <= 3; i++) {
       const col = (cols[i] || "").trim();
       if (!col) continue;
-  
+
+      // procura S, R, I ou D na coluna
       const m = col.match(/\b([SRID])\b/i);
       if (!m) continue;
-  
+
       const cls = m[1].toUpperCase();
       const orgIndex = i - 1;
-  
+
+      // garante que o organismo existe
       const org =
         currentCulture.orgs[orgIndex] ||
         (currentCulture.orgs[orgIndex] = {
@@ -401,15 +422,16 @@ function parseCultures(text) {
           I: [],
           D: [],
         });
-  
+
       if (cls === "S") org.S.push(abName);
       else if (cls === "R") org.R.push(abName);
       else if (cls === "I") org.I.push(abName);
       else if (cls === "D") org.D.push(abName);
     }
-  
+
     continue;
   }
+
 
   } // fim do for que percorre as linhas
 
