@@ -123,6 +123,7 @@ if (antibioticButtons.length > 0) {
  * Exemplo de linha:
  * (21/11) Urina: Klebsiella (...) (R: Amicacina, Ciprofloxacina | S: Meropenem)
  */
+
 function filterFormattedByAntibiotics(text, selectedSet) {
   // Se não houver Set (caso extremo), não filtra nada
   if (!selectedSet) {
@@ -135,16 +136,20 @@ function filterFormattedByAntibiotics(text, selectedSet) {
     const trimmed = line.trim();
     if (!trimmed) return line;
 
-    // só mexemos em linhas que têm R:/S:/I:/D: em algum parênteses
+    // só mexemos em linhas que têm padrão de antibiograma em algum lugar
     if (!/\(.*[SRID]\s*:\s*/.test(trimmed)) {
       return line;
     }
 
-    // Vamos tratar CADA par de parênteses da linha
-    const newLine = line.replace(/\(([^()]*)\)/g, (full, inner) => {
+    // 👉 1) substitui (hl) por um marcador temporário para evitar parênteses aninhados
+    const placeholder = "__HL__";
+    let working = line.replace(/\(hl\)/gi, placeholder);
+
+    // 👉 2) trata CADA par de parênteses da linha "sanitizada"
+    const newLine = working.replace(/\(([^()]*)\)/g, (full, inner) => {
       // inner = conteúdo dentro dos parênteses
 
-      // se não tiver R:/S:/I:/D:, não é bloco de antibiograma → mantém
+      // se não tiver R:/S:/I:/D:, não é bloco de antibiograma → mantém como está
       if (!/[SRID]\s*:\s*/.test(inner)) {
         return full;
       }
@@ -170,10 +175,14 @@ function filterFormattedByAntibiotics(text, selectedSet) {
           .filter(Boolean);
 
         // mantemos:
-        // - antibióticos que NÃO têm botão (ex.: algum sem botão)
+        // - antibióticos que NÃO têm botão
         // - antibióticos com botão que estejam selecionados
         const kept = abNames.filter((ab) => {
-          const abLower = ab.toLowerCase();
+          let abLower = ab.toLowerCase();
+
+          // se veio "Gentamicina __HL__", tira o marcador só para comparar
+          abLower = abLower.replace(/\s*__hl__\s*$/i, "");
+
           const hasButton = antibioticsWithButtons.has(abLower);
 
           // se não tem botão → nunca filtramos fora
@@ -198,13 +207,15 @@ function filterFormattedByAntibiotics(text, selectedSet) {
       return `(${newInner})`;
     });
 
-    // Limpa espaços duplos que podem surgir ao remover parênteses
-    return newLine.replace(/\s{2,}/g, " ").trimEnd();
+    // 👉 3) devolve o marcador "__HL__" para "(hl)" para exibir bonitinho
+    const restored = newLine.replace(/__HL__/g, "(HL)");
+
+    // 👉 4) limpa espaços duplos que podem surgir
+    return restored.replace(/\s{2,}/g, " ").trimEnd();
   });
 
   return filteredLines.join("\n");
 }
-
 
 
 
