@@ -229,6 +229,18 @@ function parseCultures(text) {
 
   let results = [];
 
+  let bacterioMap = {};      // chave → CGP / BGN / BGP / Leveduras
+  let currentBactExam = null;
+  let parsingBactExam = false;
+
+function finalizeBactExam() {
+  if (currentBactExam && currentBactExam.matchKey && currentBactExam.gramCode) {
+    bacterioMap[currentBactExam.matchKey] = currentBactExam.gramCode;
+  }
+  currentBactExam = null;
+  parsingBactExam = false;
+}
+
   let currentResultDate = null; // dd/mm/aaaa
   let currentCollectionDate = null;
 
@@ -281,6 +293,16 @@ function parseCultures(text) {
 
  function finalizeCulture() {
   if (!currentCulture) return;
+
+   // Se não achou gramCode dentro da cultura, tenta buscar no mapa
+if (
+  !currentCulture.gramCode &&
+  currentCulture.matchKey &&
+  bacterioMap[currentCulture.matchKey]
+) {
+  currentCulture.gramCode = bacterioMap[currentCulture.matchKey];
+}
+
 
   const date = ddmm(
     currentCulture.collectionDate || currentCulture.resultDate
@@ -374,17 +396,27 @@ function parseCultures(text) {
       continue;
     }
 
-    // "Coletado em: 21/11/2025 20:35"
-    let mCol = line.match(
-      /^Coletado em:\s*(\d{2}\/\d{2}\/\d{4})\s+\d{2}:\d{2}/i
-    );
-    if (mCol) {
-      currentCollectionDate = mCol[1];
-      if (currentCulture) {
-        currentCulture.collectionDate = currentCollectionDate;
-      }
-      continue;
-    }
+let currentCollectionDate = null;
+let currentCollectionTime = null;
+let currentCollectionStamp = null;
+
+// "Coletado em: 24/11/2025 19:17"
+let mCol = line.match(
+  /^Coletado em:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i
+);
+if (mCol) {
+  currentCollectionDate = mCol[1];         // 24/11/2025
+  currentCollectionTime = mCol[2];         // 19:17
+  currentCollectionStamp =
+    currentCollectionDate + " " + currentCollectionTime;
+
+  if (currentCulture) {
+    currentCulture.collectionDate = currentCollectionDate;
+    currentCulture.collectionStamp = currentCollectionStamp;
+  }
+  continue;
+}
+    
 
     // Início de novo bloco (Pedido / Divisão) encerra cultura anterior
     if (
@@ -395,12 +427,82 @@ function parseCultures(text) {
       continue;
     }
 
+    // Cabeçalho de BACTERIOSCÓPICO DE HEMOCULTURA
+let mBactHeader = line.match(
+  /^BACTERIOSC[ÓO]PICO DE HEMOCULTURA\s+(.+?)\s*-\s*(.+)$/i
+);
+if (mBactHeader) {
+  // sempre finaliza qualquer bacterioscopia anterior
+  finalizeBactExam();
+
+  const bactTypeRaw = (mBactHeader[1] || "").trim();     // "ANAERÓBIA"
+  const bactTailRaw = (mBactHeader[2] || "").trim();     // "SANGUE PERIFÉRICO - MSE,..."
+
+  const bactCultureType = getCultureType("CULTURA " + bactTypeRaw);
+  const bactMaterialNorm = normalizeMaterial(bactTailRaw); // "Sangue Periférico Mse" etc.
+  const bactStamp = currentCollectionStamp || "";
+
+  const matchKey =
+    (bactCultureType || "").toLowerCase() +
+    " | " +
+    bactMaterialNorm.toLowerCase() +
+    " | " +
+    bactStamp;
+
+  currentBactExam = {
+    examType: bactTypeRaw,
+    material: bactMaterialNorm,
+    collectionStamp: bactStamp,
+    matchKey,
+    gramCode: null
+  };
+
+  parsingBactExam = true;
+  continue;
+}
+
+    // Lendo o conteúdo do bacterioscópico
+if (parsingBactExam && currentBactExam) {
+
+  if (/cocos\s+gram\s+positiv/i.test(line)) {
+    currentBactExam.gramCode = "CGP";
+    continue;
+  }
+  if (/bacilos\s+gram\s+negativ/i.test(line)) {
+    currentBactExam.gramCode = "BGN";
+    continue;
+  }
+  if (/bacilos\s+gram\s+positiv/i.test(line)) {
+    currentBactExam.gramCode = "BGP";
+    continue;
+  }
+  if (/levedur/i.test(line)) {
+    currentBactExam.gramCode = "Leveduras";
+    continue;
+  }
+
+  // Fim do bloco de bacterioscopia
+  if (
+    /^Coloração de GRAM/i.test(line) ||
+    /^Material Biológico/i.test(line) ||
+    /^DIVISÃO DE LABORATÓRIO CENTRAL/i.test(line) ||
+    /^Pedido\s*:|^Pedido\s+/i.test(line) ||
+    /^CULTURA\s+/i.test(line)
+  ) {
+    finalizeBactExam();
+    // NÃO continue: a mesma linha pode ser interpretada por outro bloco
+  }
+}
+
+
+
     // Cabeçalho da cultura: "CULTURA AERÓBIA - URINA DE JATO MEDIO - ,URINA..."
     let mCultHeader = line.match(/^CULTURA.*?-\s*(.+?)(?:\s*[,;-].*)?$/i);
     if (mCultHeader) {
       // Mas só se for linha de cabeçalho mesmo (tem " - ")
       if (!line.includes(" - ")) continue;
 
+      
       finalizeCulture();
 
       // examType = primeira parte antes do primeiro "-"
@@ -408,16 +510,32 @@ function parseCultures(text) {
       const examType = line.substring(0, firstDash).trim(); // ex: "CULTURA AERÓBIA"
       const material = (mCultHeader[1] || "").trim();
 
-      currentCulture = {
-        examType,
-        material,
-        resultDate: currentResultDate,
-        collectionDate: currentCollectionDate,
-        orgs: [],
-        resultSummary: null,
-        parsingAntibiogram: false,
-      };
-      continue;
+    currentCulture = {
+  examType,
+  material,
+  resultDate: currentResultDate,
+  collectionDate: currentCollectionDate,
+
+  // carimbo de coleta: data + hora
+  collectionStamp: currentCollectionStamp || null,
+
+  // chave de casamento cultura ↔ bacterioscópico
+  matchKey:
+    (getCultureType(examType) || "").toLowerCase() +
+    " | " +
+    normalizeMaterial(material).toLowerCase() +
+    " | " +
+    (currentCollectionStamp || ""),
+
+  orgs: [],
+  resultSummary: null,
+  parsingAntibiogram: false,
+  parsingBacterioscopy: false, // vamos parar de usar isso aqui já-já
+  gramCode: null,              // CGP / BGN / BGP / Leveduras
+  detectionTime: null          // você já preenche em outro lugar
+};
+continue;
+
     }
 
        // Linha de resultado positivo/negativo da cultura:
@@ -595,6 +713,8 @@ function parseCultures(text) {
 
   } // fim do for que percorre as linhas
 
+  // Finaliza bacterioscopia pendente
+  finalizeBactExam();
   // Finaliza o último bloco, se houver
   finalizeCulture();
 
