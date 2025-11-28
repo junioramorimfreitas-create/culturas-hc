@@ -81,12 +81,44 @@
    <button id="copyBtn" class="copy-button">Copiar</button>
 
     <div> 
-    <p class="citation">
-      “A dedicação de vocês inspira. Vamos em frente, sempre em busca do melhor cuidado. Bom trabalho a todos!”
+    <p class="citation" id="fraseMotivacional"> 
     </p>
     </div>
   </div>
     
+<script>
+  const frases = [
+    "Cuidar, ensinar e aprender — todos os dias.",
+    "Aqui, cada detalhe importa. Obrigado pelo excelente trabalho.",
+    "HCFMUSP: onde a ciência encontra humanidade.",
+    "Nossa força está no trabalho em equipe. Sigamos firmes.",
+    "O cuidado que você entrega transforma vidas. Parabéns pela dedicação.",
+    "Excelência nasce do compromisso diário. Bom trabalho a todos!",
+    "Ensinar faz parte de cuidar. Obrigado por inspirar quem está chegando.",
+    "Hoje é mais um dia para fazer a diferença.",
+    "Respeito, ciência e empatia — nossa marca.",
+    "A qualidade da assistência começa na dedicação de cada um de vocês.",
+    "Acolher é tão importante quanto tratar. Obrigado por isso.",
+    "Na pressa da rotina, lembre-se: seu trabalho importa muito.",
+    "Vocês honram a missão do HC a cada plantão.",
+    "Profissionalismo é fazer o melhor, mesmo quando ninguém está olhando.",
+    "Sigamos unidos pelo melhor cuidado ao paciente.",
+    "Cuidar com ciência, agir com humanidade.",
+    "A cada turno, uma nova oportunidade de fazer bem feito.",
+    "Seu esforço mantém a excelência da nossa instituição.",
+    "É graças a vocês que o HC segue sendo referência.",
+    "Orgulho de trabalhar com gente que faz a diferença.",
+    "O cuidado não é só corpo, mas também mente e alma. Obrigado por isso.",
+  ];
+
+  function carregarFrase() {
+    const indice = Math.floor(Math.random() * frases.length);
+    document.getElementById("fraseMotivacional").innerText = "“" + frases[indice] + "”";
+  }
+
+  carregarFrase();
+</script>
+
   <script src="script.js"></script>
 
   <div id="toast" class="toast">Copiado!</div>
