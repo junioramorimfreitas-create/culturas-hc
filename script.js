@@ -130,28 +130,43 @@ function normalizeAntimicrobialName(name) {
   return toTitleCase(s);
 }
 
-function findAntimicrobialInLine(line) {
-  const upper = removeDiacritics(line).toUpperCase();
-  let best = null;
+function antimicrobialRegexSource(ab) {
+  return removeDiacritics(ab)
+    .toUpperCase()
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\s+/g, "\\s+")
+    .replace(/\//g, "\\s*\/\\s*");
+}
+
+function findAllAntimicrobialsInLine(line, startAt = 0) {
+  const original = String(line || "");
+  const upper = removeDiacritics(original).toUpperCase();
+  const matches = [];
 
   for (const ab of ANTIMICROBIALS_SORTED) {
-    const pattern = removeDiacritics(ab)
-      .toUpperCase()
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      .replace(/\s+/g, "\\s+")
-      .replace(/\//g, "\\s*\\/\\s*");
-
-    const re = new RegExp(`(^|\\s)(${pattern})(?=\\s|$|[<>=#*])`, "i");
-    const m = upper.match(re);
-    if (!m) continue;
-
-    const idx = m.index + (m[1] ? m[1].length : 0);
-    if (!best || idx < best.index || (idx === best.index && ab.length > best.name.length)) {
-      best = { index: idx, name: ab };
+    const re = new RegExp(`(^|\\s)(${antimicrobialRegexSource(ab)})(?=\\s|$|[<>=#*])`, "gi");
+    let m;
+    while ((m = re.exec(upper)) !== null) {
+      const idx = m.index + (m[1] ? m[1].length : 0);
+      if (idx < startAt) continue;
+      matches.push({ index: idx, name: ab, end: idx + m[2].length });
     }
   }
 
-  return best;
+  // Remove sobreposições. Como ANTIMICROBIALS_SORTED está por tamanho,
+  // preservamos o nome mais longo quando há conflito.
+  matches.sort((a, b) => a.index - b.index || b.name.length - a.name.length);
+  const kept = [];
+  for (const m of matches) {
+    const overlaps = kept.some((k) => !(m.end <= k.index || m.index >= k.end));
+    if (!overlaps) kept.push(m);
+  }
+  return kept.sort((a, b) => a.index - b.index);
+}
+
+function findAntimicrobialInLine(line, startAt = 0) {
+  const all = findAllAntimicrobialsInLine(line, startAt);
+  return all.length ? all[0] : null;
 }
 
 /* ===============================
@@ -384,39 +399,80 @@ function chooseOrgIndexByPosition(culture, tokenIndex, fallbackOrgNumber) {
 }
 
 function parseHeaderPositions(line) {
-  const trimmed = line.trim();
-  if (!/^\d+(?:\s+\d+){0,7}$/.test(trimmed)) return [];
+  const raw = String(line || "");
+  const trimmed = raw.trim();
+
+  // Formato isolado: "1 2".
+  let target = null;
+  if (/^\d+(?:\s+\d+){0,7}$/.test(trimmed)) {
+    target = raw;
+  }
+
+  // Formato comum no PDF: "ANTIBIOGRAMA 1 2".
+  const mAtb = raw.match(/ANTIBIOGRAMA\s+((?:\d+\s*){1,8})/i);
+  if (mAtb) target = raw.slice(mAtb.index + mAtb[0].indexOf(mAtb[1]));
+
+  if (!target) return [];
 
   const positions = [];
   const re = /\d+/g;
   let m;
-  while ((m = re.exec(line)) !== null) positions.push(m.index);
-
+  while ((m = re.exec(target)) !== null) {
+    // Se target é um slice, convertemos de volta para a posição da linha original.
+    const base = target === raw ? 0 : raw.indexOf(target);
+    positions.push(base + m.index);
+  }
   return positions;
 }
 
-function parseAntimicrobialLine(rawLine, culture, fallbackOrgNumber = null) {
-  const found = findAntimicrobialInLine(rawLine);
-  if (!found) return false;
-
-  const abName = normalizeAntimicrobialName(found.name);
-  const afterNameIndex = found.index + found.name.length;
-  const tokens = extractStatusTokensWithPositions(rawLine, afterNameIndex);
-
-  if (!tokens.length) return false;
-
-  // Se houver cabeçalho de colunas, cada token vai para a coluna mais próxima.
-  // Se não houver, uma linha comum vai para o organismo atual/fallback.
-  for (const token of tokens) {
-    const orgNumber = chooseOrgIndexByPosition(culture, token.index, fallbackOrgNumber);
-    const org = getOrgByNumber(culture, orgNumber);
-    if (!org) continue;
-
-    if (token.cls === "Obs") uniqPush(org.Obs, abName);
-    else if (["R", "S", "I", "D"].includes(token.cls)) uniqPush(org[token.cls], abName);
+function assignTokenToOrganism(culture, token, tokenOrder, totalTokens, fallbackOrgNumber) {
+  // 1) Quando há cabeçalho visual de colunas, usa a posição horizontal.
+  if (culture.headerPositions && culture.headerPositions.length > 1) {
+    return chooseOrgIndexByPosition(culture, token.index, fallbackOrgNumber);
   }
 
-  return true;
+  // 2) Sem cabeçalho confiável, se há vários resultados na mesma linha e vários
+  // microrganismos, assume ordem sequencial: 1º token -> org 1, 2º -> org 2...
+  if (totalTokens > 1 && culture.orgs.length > 1) {
+    return Math.min(tokenOrder + 1, culture.orgs.length);
+  }
+
+  // 3) Caso usual: linha pertence ao microrganismo atual.
+  return fallbackOrgNumber || 1;
+}
+
+function parseAntimicrobialLine(rawLine, culture, fallbackOrgNumber = null) {
+  const all = findAllAntimicrobialsInLine(rawLine);
+  if (!all.length) return false;
+
+  let parsedAny = false;
+
+  for (let a = 0; a < all.length; a++) {
+    const found = all[a];
+    const next = all[a + 1];
+    const abName = normalizeAntimicrobialName(found.name);
+    const segmentEnd = next ? next.index : String(rawLine).length;
+    const segment = String(rawLine).slice(found.index, segmentEnd);
+    const afterNameIndex = found.index + found.name.length;
+    let tokens = extractStatusTokensWithPositions(String(rawLine).slice(0, segmentEnd), afterNameIndex)
+      .filter((t) => t.index >= afterNameIndex && t.index < segmentEnd);
+
+    // Evita duplicação quando aparece "Sensível Dose Padrão" e alguma letra isolada em outro trecho.
+    // Mantém todos os tokens legítimos, pois em múltiplos microrganismos pode haver 2+ resultados.
+    if (!tokens.length) continue;
+
+    tokens.forEach((token, idx) => {
+      const orgNumber = assignTokenToOrganism(culture, token, idx, tokens.length, fallbackOrgNumber);
+      const org = getOrgByNumber(culture, orgNumber);
+      if (!org) return;
+
+      if (token.cls === "Obs") uniqPush(org.Obs, abName);
+      else if (["R", "S", "I", "D"].includes(token.cls)) uniqPush(org[token.cls], abName);
+      parsedAny = true;
+    });
+  }
+
+  return parsedAny;
 }
 
 function looksLikeFooter(line) {
@@ -479,8 +535,43 @@ function finalizeCulture(culture, results) {
   }
 }
 
+
+function preparePastedText(text) {
+  let t = String(text || "").replace(/\u00a0/g, " ");
+
+  // Quando o texto vem de Ctrl+C/Ctrl+V do PDF, às vezes blocos inteiros ficam
+  // em uma linha só. Estes marcadores recriam quebras de linha úteis para o parser.
+  const markers = [
+    "Coletado em:",
+    "Liberado em:",
+    "Resultado PARCIAL",
+    "Resultado",
+    "ANTIBIOGRAMA",
+    "Microrganismos",
+    "Antibiogramas",
+    "Antimicrobiano",
+    "Observações:",
+    "Obs:",
+    "Legenda",
+    "Espaco entre os memos",
+    "Material Biológico entregue",
+    "Consulte Manual",
+    "Médicos Responsáveis",
+  ];
+
+  for (const marker of markers) {
+    const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    t = t.replace(new RegExp(`\\s+(${escaped})`, "gi"), "\n$&");
+  }
+
+  // Quebra antes de "1 - Nome do microrganismo", sem mexer em MICs como >= 32 R.
+  t = t.replace(/\s+(?=\d+\s*-\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-zÀ-ÿ]+(?:\s+[a-zÀ-ÿ(]|\s+[A-Z][a-zÀ-ÿ]))/g, "\n");
+
+  return t;
+}
+
 function parseCultures(text) {
-  const lines = String(text || "").replace(/\u00a0/g, " ").split(/\r?\n/);
+  const lines = preparePastedText(text).split(/\r?\n/);
   const results = [];
   let currentCulture = null;
   let lastOrgNumber = null;
@@ -619,13 +710,10 @@ function parseCultures(text) {
         addOrUpdateOrganism(c, orgNumber, orgName);
         lastOrgNumber = orgNumber;
 
-        // Reconstrói a linha mantendo o deslocamento original do antibiótico quando possível.
-        const originalAbIndex = rawLine.indexOf(foundAb.name);
-        if (originalAbIndex >= 0) {
-          parseAntimicrobialLine(rawLine, c, orgNumber);
-        } else {
-          parseAntimicrobialLine(rest.slice(foundAb.index), c, orgNumber);
-        }
+        // A mesma linha pode conter o primeiro antibiótico e, em colagens ruins,
+        // vários outros antimicrobianos em sequência. Usamos rawLine para preservar
+        // as posições visuais das colunas quando o PDF mantém alinhamento.
+        parseAntimicrobialLine(rawLine, c, orgNumber);
       } else {
         addOrUpdateOrganism(c, orgNumber, rest);
         lastOrgNumber = orgNumber;
