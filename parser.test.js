@@ -33,4 +33,36 @@ const r3 = parseCultures(brcast);
 assert(/Streptococcus pneumoniae/i.test(r3));
 assert(/CLINDAMICINA/i.test(r3));
 
+const providedCase = `Coletado em: 27/04/2026 17:00
+Liberado em: 02/05/2026
+AMICACINA
+4 S
+1 - Enterococcus faecium
+AMPICILINA
+>= 32 R
+2 - Klebsiella pneumoniae complex
+AZTREONAM
+>= 64 R
+CEFTAZIDIMA/AVIBACTAM
+1 S
+GENTAMICINA
+<= 1 S
+Legenda
+GENTAMICINA (HL)
+R
+LINEZOLIDA
+1 S
+MEROPENEM
+>= 16 R
+TIGECICLINA
+<= 0,12 S 1 S
+VANCOMICINA
+>= 32 R`;
+const r4 = parseCultures(providedCase);
+assert(/Hemocultura:/i.test(r4));
+assert(/Enterococcus faecium/i.test(r4));
+assert(/Klebsiella pneumoniae/i.test(r4));
+assert(/Linezolida/i.test(r4));
+assert(/Ceftazidima\/Avibactam/i.test(r4));
+
 console.log('OK: parser tests passed');

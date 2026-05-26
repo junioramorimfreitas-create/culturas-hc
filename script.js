@@ -788,10 +788,77 @@ continue;
   // Finaliza o último bloco, se houver
   finalizeCulture();
 
+  // Fallback para layout antigo "empilhado" (antibiótico em uma linha e resultado na linha seguinte)
+  if (results.length === 0) {
+    const stacked = parseStackedAntibiogramLayout(cleanedText);
+    if (stacked) results.push(stacked);
+  }
+
   if (layout === "new") {
     return enrichWithMetadata(results.join("\n"), cleanedText);
   }
   return enrichWithMetadata(results.join("\n"), cleanedText);
+}
+
+function parseStackedAntibiogramLayout(rawText) {
+  const lines = (rawText || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+
+  const orgs = [];
+  for (const l of lines) {
+    const m = l.match(/^(\d+)\s*-\s*(.+)$/);
+    if (m) {
+      orgs.push({
+        idx: parseInt(m[1], 10),
+        name: m[2].trim().replace(/\s+complex$/i, ""),
+        R: [],
+        S: [],
+        I: [],
+        D: [],
+      });
+    }
+  }
+  if (!orgs.length) return null;
+
+  const hasLegend = lines.some((l) => /^Legenda$/i.test(l));
+  const hasStackedValues = lines.some((l) => /^([<>=]+\s*)?[\d.,]+\s+[SRIDPN](\s+[SRIDPN])*$/.test(l) || /^[SRIDPN](\s+[SRIDPN])+$/.test(l));
+  if (!hasLegend && !hasStackedValues) return null;
+
+  let currentAb = null;
+  for (const l of lines) {
+    if (/^Legenda$/i.test(l)) continue;
+    if (/^(Coletado em:|Liberado em:|M[ée]todo:|Resultado|Valores de Referência|HIST[ÓO]RICO)/i.test(l)) continue;
+    if (/^\d+\s*-\s*/.test(l)) continue;
+    if (/^[SRIDPN]\s*-\s*/i.test(l)) continue;
+
+    const vm = l.match(/^([<>=]+\s*)?[\d.,*]+\s+([SRIDPN])(?:\s+([SRIDPN]))?$/i) || l.match(/^([SRIDPN])(?:\s+([SRIDPN]))$/i);
+    if (vm && currentAb) {
+      const c1 = normalizeInterpretation(vm[2] || vm[1]);
+      const c2 = normalizeInterpretation(vm[3] || vm[2] || null);
+      if (c1 && orgs[0]) orgs[0][c1].push(currentAb);
+      if (c2 && orgs[1]) orgs[1][c2].push(currentAb);
+      continue;
+    }
+
+    if (/^[A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ0-9\/+() .-]{3,}$/i.test(l)) {
+      currentAb = l.replace(/\s+/g, " ").trim();
+    }
+  }
+
+  const dateCol = (rawText.match(/Coletado em:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i) || []);
+  const stamp = dateCol[1] ? `(${dateCol[1].slice(0,6)}${dateCol[1].slice(8)} ${dateCol[2] || ""}) ` : "";
+  const material = /cateter/i.test(rawText) ? "HMC cateter" : "Hemocultura";
+
+  const formatOrg = (o) => {
+    const p = [];
+    if (o.S.length) p.push(`S: ${o.S.map(toTitleCase).join(", ")}`);
+    if (o.R.length) p.push(`R: ${o.R.map(toTitleCase).join(", ")}`);
+    if (o.I.length) p.push(`I: ${o.I.map(toTitleCase).join(", ")}`);
+    if (o.D.length) p.push(`D: ${o.D.map(toTitleCase).join(", ")}`);
+    return `${o.name} (${p.join(" | ")})`;
+  };
+
+  return `${stamp}${material}: ${orgs.map(formatOrg).join(" + ")}`.trim();
 }
 
 function detectMicrobiologyLayout(text) {
@@ -881,7 +948,8 @@ function enrichWithMetadata(output, rawText) {
   if (obsBlock) headerParts.push(`Observações: ${obsBlock}`);
 
   if (!headerParts.length) return output;
-  return `[${headerParts.join(" | ")}]\n${output}`.trim();
+  if (!output || !output.trim()) return `[${headerParts.join(" | ")}]`;
+  return output;
 }
 
 function extractClinicalObservations(rawText) {
