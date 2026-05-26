@@ -225,9 +225,7 @@ function filterFormattedByAntibiotics(text, selectedSet) {
    =============================== */
 
 function parseCultures(text) {
-  const cleanedText = stripAdministrativeNoise(text || "");
-  const layout = detectMicrobiologyLayout(cleanedText);
-  const lines = cleanedText.split(/\r?\n/);
+  const lines = text.split(/\r?\n/);
 
   let results = [];
 
@@ -245,8 +243,6 @@ function finalizeBactExam() {
 
   let currentResultDate = null; // dd/mm/aaaa
   let currentCollectionDate = null;
-  let currentCollectionTime = null;
-  let currentCollectionStamp = null;
 
   let currentCulture = null; // bloco atual de cultura
 
@@ -393,30 +389,16 @@ if (
     const line = rawLine.trim();
     if (!line) continue;
 
-    if (/^Microrganismos$/i.test(line) && !currentCulture) {
-      currentCulture = {
-        examType: "CULTURA",
-        material: "Hemocultura",
-        resultDate: currentResultDate,
-        collectionDate: currentCollectionDate,
-        collectionStamp: currentCollectionStamp || null,
-        matchKey: "",
-        orgs: [],
-        resultSummary: null,
-        parsingAntibiogram: false,
-        parsingBacterioscopy: false,
-        gramCode: null,
-        detectionTime: null
-      };
-      continue;
-    }
-
     // Linha com data/hora do resultado: 21/11/2025 14:45:20
     let mRes = line.match(/^(\d{2}\/\d{2}\/\d{4})\s+\d{2}:\d{2}:\d{2}/);
     if (mRes) {
       currentResultDate = mRes[1];
       continue;
     }
+
+let currentCollectionDate = null;
+let currentCollectionTime = null;
+let currentCollectionStamp = null;
 
 // "Coletado em: 24/11/2025 19:17"
 let mCol = line.match(
@@ -608,7 +590,7 @@ continue;
     }
 
     // Início do antibiograma
-    if ((/^ANTIBIOGRAMA/i.test(line) || /^Antibiogramas?/i.test(line)) && currentCulture) {
+    if (/^ANTIBIOGRAMA/i.test(line) && currentCulture) {
       currentCulture.parsingAntibiogram = true;
       continue;
     }
@@ -648,37 +630,6 @@ continue;
 
       // Linhas do antibiograma
     if (currentCulture && currentCulture.parsingAntibiogram) {
-      if (/^Antimicrobiano\s+Classifica/i.test(line)) continue;
-      if (/^Microrganismos$/i.test(line)) continue;
-
-      // Novo layout (BrCAST): "AB Sensível Dose Padrão [CIM opcional]"
-      const brcast = parseBrcastAntibioticLine(line);
-      if (brcast && currentCulture.orgs.length > 0) {
-        const org = currentCulture.orgs[currentCulture.orgs.length - 1];
-        const cls = normalizeInterpretation(brcast.interpretation);
-        const abLabel = brcast.mic ? `${brcast.name} ${brcast.mic}` : brcast.name;
-        if (cls === "S") org.S.push(abLabel);
-        else if (cls === "R") org.R.push(abLabel);
-        else if (cls === "I") org.I.push(abLabel);
-        else if (cls === "D") org.D.push(abLabel);
-        continue;
-      }
-
-      // Layout antigo misturando organismo + primeiro antibiótico
-      const mixed = line.match(/^(\d+)\s*-\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9 .\/()\-+]+?)\s{1,}([A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ0-9\/+ .\-]+(?:\b[SRID]\b|Sensível|Resistente|Consultar))/i);
-      if (mixed) {
-        const orgName = mixed[2].replace(/\s+/g, " ").trim();
-        currentCulture.orgs.push({
-          name: orgName,
-          ufc: null,
-          R: [],
-          S: [],
-          I: [],
-          D: [],
-        });
-        rawLine = mixed[3];
-      }
-
       // Usamos a linha original (com tabs), não só a versão "trim"
       let raw = rawLine;
 
@@ -686,7 +637,6 @@ continue;
       if (!raw || !raw.trim()) continue;
 
       let cols;
-      let parsedInline = null;
 
       if (raw.includes("\t")) {
         // Caso 1: tabela com TABs → preserva colunas vazias
@@ -694,26 +644,15 @@ continue;
       } else {
         // Caso 2: não tem TAB → usa blocos de 2+ espaços como separador
         cols = raw.trim().split(/\s{2,}/);
-        if (cols.length < 2) {
-          const mInline = raw
-            .trim()
-            .match(/^(.+?)\s+((?:<=|>=|=|<|>)?\s*[\d.,*]+)?\s*([SRIDPN])$/i);
-          if (mInline) {
-            parsedInline = {
-              abName: mInline[1].trim(),
-              cls: normalizeInterpretation(mInline[3]),
-            };
-          }
-        }
       }
 
       // precisa ter pelo menos nome + 1 coluna
-      if (!parsedInline && cols.length < 2) continue;
+      if (cols.length < 2) continue;
 
       // primeiro campo = nome do antibiótico
-      let abName = parsedInline ? parsedInline.abName : (cols[0] || "").trim();
+      let abName = (cols[0] || "").trim();
       if (!abName) continue;
-      abName = abName.replace(/\s+/g, " ").trim();
+      abName = toTitleCase(abName);
 
       // número de microrganismos: usa o que já foi lido (1 -, 2 -, 3 -, ...),
       // mas limita a no máximo 5
@@ -727,15 +666,6 @@ continue;
 
       // colunas 1..maxOrgs → organismos 0..maxOrgs-1
       for (let i = 1; i <= maxOrgs; i++) {
-        if (parsedInline) {
-          const org = currentCulture.orgs[0];
-          if (!org || !parsedInline.cls) break;
-          if (parsedInline.cls === "S") org.S.push(abName);
-          else if (parsedInline.cls === "R") org.R.push(abName);
-          else if (parsedInline.cls === "I") org.I.push(abName);
-          else if (parsedInline.cls === "D") org.D.push(abName);
-          break;
-        }
         const col = (cols[i] || "").trim();
         if (!col) continue;
 
@@ -746,9 +676,9 @@ continue;
           cls = "S";
         } else {
           // 2) Regra geral: procura S, R, I ou D na coluna
-          const m = col.match(/\b([SRIDPN])\b/i);
+          const m = col.match(/\b([SRID])\b/i);
           if (!m) continue;
-          cls = normalizeInterpretation(m[1].toUpperCase());
+          cls = m[1].toUpperCase();
         }
 
         const orgIndex = i - 1;
@@ -788,187 +718,7 @@ continue;
   // Finaliza o último bloco, se houver
   finalizeCulture();
 
-  // Fallback para layout antigo "empilhado" (antibiótico em uma linha e resultado na linha seguinte)
-  if (results.length === 0) {
-    const stacked = parseStackedAntibiogramLayout(cleanedText);
-    if (stacked) results.push(stacked);
-  }
-
-  if (layout === "new") {
-    return enrichWithMetadata(results.join("\n"), cleanedText);
-  }
-  return enrichWithMetadata(results.join("\n"), cleanedText);
-}
-
-function parseStackedAntibiogramLayout(rawText) {
-  const lines = (rawText || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (!lines.length) return null;
-
-  const orgs = [];
-  for (const l of lines) {
-    const m = l.match(/^(\d+)\s*-\s*(.+)$/);
-    if (m) {
-      orgs.push({
-        idx: parseInt(m[1], 10),
-        name: m[2].trim().replace(/\s+complex$/i, ""),
-        R: [],
-        S: [],
-        I: [],
-        D: [],
-      });
-    }
-  }
-  if (!orgs.length) return null;
-
-  const hasLegend = lines.some((l) => /^Legenda$/i.test(l));
-  const hasStackedValues = lines.some((l) => /^([<>=]+\s*)?[\d.,]+\s+[SRIDPN](\s+[SRIDPN])*$/.test(l) || /^[SRIDPN](\s+[SRIDPN])+$/.test(l));
-  if (!hasLegend && !hasStackedValues) return null;
-
-  let currentAb = null;
-  for (const l of lines) {
-    if (/^Legenda$/i.test(l)) continue;
-    if (/^(Coletado em:|Liberado em:|M[ée]todo:|Resultado|Valores de Referência|HIST[ÓO]RICO)/i.test(l)) continue;
-    if (/^\d+\s*-\s*/.test(l)) continue;
-    if (/^[SRIDPN]\s*-\s*/i.test(l)) continue;
-
-    const vm = l.match(/^([<>=]+\s*)?[\d.,*]+\s+([SRIDPN])(?:\s+([SRIDPN]))?$/i) || l.match(/^([SRIDPN])(?:\s+([SRIDPN]))$/i);
-    if (vm && currentAb) {
-      const c1 = normalizeInterpretation(vm[2] || vm[1]);
-      const c2 = normalizeInterpretation(vm[3] || vm[2] || null);
-      if (c1 && orgs[0]) orgs[0][c1].push(currentAb);
-      if (c2 && orgs[1]) orgs[1][c2].push(currentAb);
-      continue;
-    }
-
-    if (/^[A-ZÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ0-9\/+() .-]{3,}$/i.test(l)) {
-      currentAb = l.replace(/\s+/g, " ").trim();
-    }
-  }
-
-  const dateCol = (rawText.match(/Coletado em:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})/i) || []);
-  const stamp = dateCol[1] ? `(${dateCol[1].slice(0,6)}${dateCol[1].slice(8)} ${dateCol[2] || ""}) ` : "";
-  const material = /cateter/i.test(rawText) ? "HMC cateter" : "Hemocultura";
-
-  const formatOrg = (o) => {
-    const p = [];
-    if (o.S.length) p.push(`S: ${o.S.map(toTitleCase).join(", ")}`);
-    if (o.R.length) p.push(`R: ${o.R.map(toTitleCase).join(", ")}`);
-    if (o.I.length) p.push(`I: ${o.I.map(toTitleCase).join(", ")}`);
-    if (o.D.length) p.push(`D: ${o.D.map(toTitleCase).join(", ")}`);
-    return `${o.name} (${p.join(" | ")})`;
-  };
-
-  return `${stamp}${material}: ${orgs.map(formatOrg).join(" + ")}`.trim();
-}
-
-function detectMicrobiologyLayout(text) {
-  if (!text) return "unknown";
-  const hasNew =
-    /Microrganismos/i.test(text) &&
-    /Antibiogramas?/i.test(text) &&
-    /Classifica[çc][ãa]o\/Categoria/i.test(text);
-  const hasOld =
-    /ANTIBIOGRAMA\s+\d+/i.test(text) ||
-    /Legenda/i.test(text) ||
-    /\bS\s*-\s*Sens[ií]vel\b/i.test(text);
-  if (hasNew) return "new";
-  if (hasOld) return "old";
-  return "unknown";
-}
-
-function normalizeInterpretation(value) {
-  const v = (value || "").toString().trim().toLowerCase();
-  if (!v) return null;
-  if (v === "s" || v.includes("sensível dose padrão")) return "S";
-  if (v === "i" || v.includes("aumentando a expos")) return "I";
-  if (v === "r" || v.includes("resistente")) return "R";
-  if (v === "d" || v.includes("dose depend")) return "D";
-  if (v.includes("consultar observa")) return "D";
-  if (v === "p" || v.includes("positivo")) return "S";
-  if (v === "n" || v.includes("negativo")) return "R";
-  return null;
-}
-
-function parseBrcastAntibioticLine(line) {
-  const clean = (line || "").replace(/\s+/g, " ").trim();
-  if (!clean) return null;
-  const categoryPatterns = [
-    "Sensível Dose Padrão",
-    "Sensivel Dose Padrao",
-    "Sensível Aumentando a exposição",
-    "Sensivel Aumentando a exposicao",
-    "Resistente",
-    "Consultar observação",
-    "Consultar observacao"
-  ];
-  for (const cat of categoryPatterns) {
-    const idx = clean.toLowerCase().indexOf(cat.toLowerCase());
-    if (idx > 0) {
-      const namePart = clean.slice(0, idx).trim();
-      const tail = clean.slice(idx + cat.length).trim();
-      const micMatch = tail.match(/^((?:<=|>=|=|<|>)?\s*[\d.,]+)\b/);
-      return {
-        name: namePart,
-        interpretation: cat,
-        mic: micMatch ? micMatch[1].replace(/\s+/g, "") : null,
-      };
-    }
-  }
-  return null;
-}
-
-function stripAdministrativeNoise(text) {
-  const blocked = [
-    /^M[ée]dicos Respons[áa]veis/i,
-    /^Os resultados dos exames laboratoriais/i,
-    /^Consulte Manual de Exames/i,
-    /^Material Biol[oó]gico entregue/i,
-    /\bCRM\s*\d+/i
-  ];
-  return (text || "")
-    .split(/\r?\n/)
-    .filter((l) => !blocked.some((rx) => rx.test((l || "").trim())))
-    .join("\n");
-}
-
-function enrichWithMetadata(output, rawText) {
-  const collected = (rawText.match(/Coletado em:\s*([^\n]+)/i) || [])[1];
-  const released = (rawText.match(/Liberado em:\s*([^\n]+)/i) || [])[1];
-  const examCode = (rawText.match(/C[oó]digo do exame:\s*([^\n]+)/i) || [])[1];
-  const method = (rawText.match(/M[ée]todo:\s*([^\n]+)/i) || [])[1];
-  const partial = /Resultado\s+PARCIAL|Favor aguardar resultado final/i.test(rawText);
-  const obsBlock = extractClinicalObservations(rawText);
-
-  const headerParts = [];
-  if (collected) headerParts.push(`Coletado em ${collected.trim()}`);
-  if (released) headerParts.push(`Liberado em ${released.trim()}`);
-  if (examCode) headerParts.push(`Código ${examCode.trim()}`);
-  if (method) headerParts.push(`Método ${method.trim()}`);
-  if (partial) headerParts.push("Resultado parcial");
-  if (obsBlock) headerParts.push(`Observações: ${obsBlock}`);
-
-  if (!headerParts.length) return output;
-  if (!output || !output.trim()) return `[${headerParts.join(" | ")}]`;
-  return output;
-}
-
-function extractClinicalObservations(rawText) {
-  const clinical = [];
-  const rules = [
-    /carbapenemase[^\n.]*/ig,
-    /\bKPC\b[^\n.]*/ig,
-    /oxacilina[^\n.]*/ig,
-    /daptomicina[^\n.]*/ig,
-    /polimixina|colistina[^\n.]*/ig,
-    /consultar\s+CIM[^\n.]*/ig,
-    /Instituto Adolfo Lutz[^\n.]*/ig,
-    /Observa[çc][õo]es?:\s*([^\n]+)/ig
-  ];
-  for (const rx of rules) {
-    const matches = rawText.match(rx) || [];
-    for (const m of matches) clinical.push(m.replace(/\s+/g, " ").trim());
-  }
-  return [...new Set(clinical)].join(" | ");
+  return results.join("\n");
 }
 
 
