@@ -403,6 +403,21 @@ function addAntimicrobialResult(exam, orgNumber, abName, cls) {
   else if (["R", "S", "I", "D"].includes(cls)) uniqPush(org[cls], label);
 }
 
+function applyAntimicrobialClasses(exam, abName, resultText, fallbackOrgNumber) {
+  const classes = classifySegment(resultText, abName);
+  if (!classes.length) return false;
+
+  // Se houver múltiplas classificações no mesmo resultado e múltiplos microrganismos,
+  // assume ordem 1, 2, 3... Ex.: "<= 0,12 S 1 S".
+  if (classes.length > 1 && exam.orgs.length > 1) {
+    classes.forEach((cls, idx) => addAntimicrobialResult(exam, exam.orgs[idx]?.number || idx + 1, abName, cls));
+  } else {
+    const orgNumber = likelyOrgForAntimicrobial(exam, abName, fallbackOrgNumber);
+    addAntimicrobialResult(exam, orgNumber, abName, classes[classes.length - 1]);
+  }
+  return true;
+}
+
 function parseAntimicrobialLine(line, exam, fallbackOrgNumber) {
   const matches = findAntimicrobials(line);
   if (!matches.length) return false;
@@ -412,21 +427,39 @@ function parseAntimicrobialLine(line, exam, fallbackOrgNumber) {
     const ab = matches[i];
     const next = matches[i + 1];
     const segment = String(line).slice(ab.index, next ? next.index : undefined);
-    const classes = classifySegment(segment, ab.name);
-    if (!classes.length) continue;
-
-    // Se houver múltiplas classificações no mesmo segmento e múltiplos microrganismos,
-    // assume ordem 1, 2, 3... Ex.: "TIGECICLINA <= 0,12 S 1 S".
-    if (classes.length > 1 && exam.orgs.length > 1) {
-      classes.forEach((cls, idx) => addAntimicrobialResult(exam, exam.orgs[idx]?.number || idx + 1, ab.name, cls));
-    } else {
-      const orgNumber = likelyOrgForAntimicrobial(exam, ab.name, fallbackOrgNumber);
-      addAntimicrobialResult(exam, orgNumber, ab.name, classes[classes.length - 1]);
-    }
-    parsed = true;
+    parsed = applyAntimicrobialClasses(exam, ab.name, segment, fallbackOrgNumber) || parsed;
   }
 
   return parsed;
+}
+
+function getSingleAntimicrobialName(line) {
+  const clean = String(line || "").replace(/\s+/g, " ").trim();
+  if (!clean) return null;
+
+  const matches = findAntimicrobials(clean);
+  if (matches.length !== 1) return null;
+
+  const m = matches[0];
+  const before = clean.slice(0, m.index).trim();
+  const after = clean.slice(m.end).trim();
+
+  // Só considera "linha de antibiótico" quando a linha é basicamente apenas o nome.
+  // Ex.: "AMICACINA" ou "ESTREPTOMICINA (HL)".
+  if (before || after) return null;
+  return m.name;
+}
+
+function looksLikeResultOnlyLine(line) {
+  const s = String(line || "").trim();
+  if (!s) return false;
+  if (findAntimicrobials(s).length) return false;
+  if (/^(S|I|R|D)$/i.test(s)) return true;
+  if (/^(?:[<>]=?\s*)?\d+(?:[,.]\d+)?\s+(?:S|I|R|D)(?:\s+\d+\s+(?:S|I|R|D))*$/i.test(s)) return true;
+  if (/^#|^\*/.test(s)) return true;
+  if (/consultar\s+observa/i.test(s)) return true;
+  if (/sens[ií]vel|resistente|intermedi[aá]rio|dose\s+dependente/i.test(s)) return true;
+  return false;
 }
 
 function shouldIgnoreLine(line) {
@@ -508,6 +541,7 @@ function parseCultures(text) {
   const out = [];
   let exam = null;
   let lastOrgNumber = null;
+  let pendingAntimicrobial = null; // quando vem ANTIBIÓTICO em uma linha e resultado na seguinte
 
   function ensureExam() {
     if (!exam) exam = newExam();
@@ -518,6 +552,7 @@ function parseCultures(text) {
     finalizeExam(exam, out);
     exam = null;
     lastOrgNumber = null;
+    pendingAntimicrobial = null;
   }
 
   for (const rawLine of lines) {
@@ -544,6 +579,23 @@ function parseCultures(text) {
       continue;
     }
 
+    // Padrão real do Ctrl+C/Ctrl+V do PDF:
+    //   AMICACINA
+    //   4 S
+    // Nesse caso guardamos o antibiótico e aplicamos o resultado da próxima linha.
+    if (exam && pendingAntimicrobial && looksLikeResultOnlyLine(line)) {
+      applyAntimicrobialClasses(exam, pendingAntimicrobial, line, lastOrgNumber);
+      pendingAntimicrobial = null;
+      continue;
+    }
+
+    // Se apareceu uma linha só com nome de antimicrobiano, aguarda a linha seguinte.
+    const singleAb = getSingleAntimicrobialName(line);
+    if (exam && singleAb) {
+      pendingAntimicrobial = singleAb;
+      continue;
+    }
+
     // Linha de microrganismo: pode vir sozinha ou junto com o primeiro antimicrobiano.
     const mOrg = line.match(/^(\d+)\s*-\s*(.+)$/);
     if (mOrg) {
@@ -558,6 +610,7 @@ function parseCultures(text) {
         const orgName = rest.slice(0, firstAb.index).trim();
         setOrgName(current, n, orgName);
         lastOrgNumber = n;
+        pendingAntimicrobial = null;
         parseAntimicrobialLine(rest.slice(firstAb.index), current, n);
       } else {
         setOrgName(current, n, rest);
@@ -573,7 +626,10 @@ function parseCultures(text) {
       continue;
     }
 
-    if (exam && parseAntimicrobialLine(line, exam, lastOrgNumber)) continue;
+    if (exam && parseAntimicrobialLine(line, exam, lastOrgNumber)) {
+      pendingAntimicrobial = null;
+      continue;
+    }
   }
 
   finishExam();
