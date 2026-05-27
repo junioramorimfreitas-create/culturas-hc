@@ -61,6 +61,24 @@
       background: #ffffff;
     }
 
+
+    .text-input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: #f9fafb;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px #2563eb33;
+      background: #ffffff;
+    }
+
     .row {
       display: flex;
       flex-direction: column;

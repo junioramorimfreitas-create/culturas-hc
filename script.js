@@ -255,11 +255,12 @@ function newOrg(number, name) {
   };
 }
 
-function newExam() {
+function newExam(manualMaterial) {
+  const manual = String(manualMaterial || "").trim();
   return {
     collectionDate: null,
     isPartial: false,
-    material: "Material não informado",
+    material: manual || "Material não informado",
     orgs: [],
     resistanceNotes: [],
   };
@@ -536,7 +537,7 @@ function finalizeExam(exam, out) {
   out.push(line);
 }
 
-function parseCultures(text) {
+function parseCultures(text, manualMaterial) {
   const lines = prepareNewLaudoText(text).split(/\r?\n/);
   const out = [];
   let exam = null;
@@ -544,7 +545,7 @@ function parseCultures(text) {
   let pendingAntimicrobial = null; // quando vem ANTIBIÓTICO em uma linha e resultado na seguinte
 
   function ensureExam() {
-    if (!exam) exam = newExam();
+    if (!exam) exam = newExam(manualMaterial);
     return exam;
   }
 
@@ -564,6 +565,14 @@ function parseCultures(text) {
       if (exam && (exam.collectionDate || exam.orgs.length)) finishExam();
       ensureExam().collectionDate = mCollection[1];
       continue;
+    }
+
+    // Heurística de material: quando o laudo foi semeado em meios Bactec,
+    // tratamos como hemocultura. Isso funciona mesmo quando o campo do
+    // material veio como imagem no PDF e não foi copiado no Ctrl+C/Ctrl+V.
+    if (/(^|\s)bactec(\s|$|[-])/i.test(line)) {
+      const current = ensureExam();
+      current.material = "Hemocultura";
     }
 
     if (/^Resultado\s+PARCIAL/i.test(line)) {
@@ -645,7 +654,8 @@ window.parseCultures = parseCultures;
 
 document.getElementById("processBtn")?.addEventListener("click", () => {
   const raw = document.getElementById("input")?.value || "";
-  lastFormattedText = parseCultures(raw);
+  const manualMaterial = document.getElementById("manualMaterial")?.value || "";
+  lastFormattedText = parseCultures(raw, manualMaterial);
   document.getElementById("output").value = filterFormattedByAntibiotics(lastFormattedText, selectedAntibiotics);
 });
 
