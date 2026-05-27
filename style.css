@@ -22,6 +22,7 @@
     h1 {
       font-size: 1.4rem;
       margin-bottom: 4px;
+      text-align: center;
     }
 
     h3 {
@@ -77,6 +78,58 @@
       border-color: #2563eb;
       box-shadow: 0 0 0 1px #2563eb33;
       background: #ffffff;
+    }
+
+    .select-input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: #f9fafb;
+    }
+
+    .select-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px #2563eb33;
+      background: #ffffff;
+    }
+
+    .date-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #f9fafb;
+    }
+
+    .date-option-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 180px;
+    }
+
+    .checkbox-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: #111827;
+    }
+
+    .checkbox-option input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
     }
 
     .row {
@@ -274,9 +327,10 @@
 
 .antibiotic-category-box h4 {
   margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.1;
-  color: #374151;
+  font-size: 0.95rem;
+  line-height: 1.15;
+  color: #1f2937;
+  font-weight: 700;
 }
 
 .category-controls {
@@ -341,6 +395,48 @@
   white-space: normal;
 }
 
+
+/* Cores pastéis por categoria */
+.antibiotic-category-box.box-betalactamicos {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
+.antibiotic-category-box.box-quinolonas {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.antibiotic-category-box.box-aminoglicosideos {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.antibiotic-category-box.box-tetraciclinas {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+}
+
+.antibiotic-category-box.box-glicolipopeptideos {
+  background: #fefce8;
+  border-color: #fde68a;
+}
+
+.antibiotic-category-box.box-outros {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.antibiotic-category-box.box-antifungicos {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.antibiotic-category-box .category-toggle,
+.antibiotic-category-box .antibiotic-btn {
+  background-color: rgba(255, 255, 255, 0.82);
+}
+
 @media (max-width: 1250px) {
   .antibiotic-categories {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -357,4 +453,157 @@
   .antibiotic-categories {
     grid-template-columns: 1fr;
   }
+}
+
+/* Botão selecionado estilo “chip ativo”: fundo branco, borda azul,
+   texto escuro e check à esquerda. */
+.antibiotic-category-box .antibiotic-btn.selected,
+.antibiotic-category-box .antibiotic-btn.selected:hover,
+.antibiotic-btn.selected,
+.antibiotic-btn.selected:hover {
+  background-color: #ffffff !important;
+  border: 2px solid #2563eb !important;
+  color: #111827 !important;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);
+}
+
+.antibiotic-category-box .antibiotic-btn.selected::before,
+.antibiotic-btn.selected::before {
+  content: "✓ ";
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.antibiotic-category-box .antibiotic-btn:not(.selected):hover,
+.antibiotic-btn:not(.selected):hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #111827 !important;
+}
+
+
+/* Layout v18: dois blocos superiores + antimicrobianos embaixo */
+.page-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.page-header .small {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.panel h2 {
+  margin: 0 0 2px;
+  font-size: 1.08rem;
+  line-height: 1.2;
+  color: #111827;
+}
+
+.current-panel,
+.draft-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-row textarea {
+  min-height: 190px;
+}
+
+.output-row textarea {
+  min-height: 130px;
+}
+
+.draft-panel .draft-row {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0;
+}
+
+.draft-panel #draft {
+  flex: 1;
+  min-height: 430px;
+}
+
+.panel-actions {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.antibiotics-panel {
+  margin-top: 4px;
+}
+
+.antibiotics-panel > h3 {
+  margin-top: 0;
+  font-size: 1.08rem;
+}
+
+.antibiotics-panel .antibiotic-actions {
+  margin-top: 12px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 1050px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .draft-panel #draft {
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 700px) {
+  .container {
+    padding: 20px;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+}
+
+.page-footer {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: #b9b9b9;
+  line-height: 1;
+  opacity: 0.75;
+  user-select: none;
 }

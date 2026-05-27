@@ -3,28 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <title>Resumo de Culturas - HCFMUSP</title>
-
-  <!-- Arquivo de estilos -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>Resumo de  culturas</h1>
-    <p class="small">
-      Cole abaixo o texto bruto do laudo do HC (copia/cola da tela).
-    </p>
+    <header class="page-header">
+      <div>
+        <h1>Resumo de culturas</h1>
+        <p class="small">Cole o texto bruto do laudo, revise a saída automática e adicione ao rascunho final.</p>
+      </div>
+    </header>
 
-    <div class="row">
-      <label for="manualMaterial"><strong>Material, se não for hemocultura</strong></label>
-      <input id="manualMaterial" class="text-input" type="text" placeholder="Ex: urina, secreção traqueal, líquor, tecido, ponta de cateter">
-      <p class="small">Se o laudo tiver Bactec, o sistema identifica automaticamente como hemocultura e ignora este campo.</p>
-    </div>
+    <main class="workspace-grid">
+      <section class="panel current-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Laudo atual</h2>
+            <p class="small">Use esta área para processar um laudo por vez.</p>
+          </div>
+        </div>
 
-    <div class="row">
-      <label for="input"><strong>Texto do laudo (entrada)</strong></label>
-      <textarea id="input" placeholder="Cole aqui o laudo inteiro com as culturas..."></textarea>
-    </div>
+        <div class="row">
+          <label for="manualMaterial"><strong>Material, se não for hemocultura</strong></label>
+          <input id="manualMaterial" class="text-input" type="text" placeholder="Ex: urina, secreção traqueal, líquor, tecido, ponta de cateter">
+          <p class="small">Se o laudo tiver Bactec, o sistema identifica automaticamente como hemocultura e ignora este campo.</p>
+        </div>
 
+        <div class="date-options compact-options">
+          <div class="date-option-field">
+            <label for="dateFormat"><strong>Formato da data</strong></label>
+            <select id="dateFormat" class="select-input">
+              <option value="ddmm">DD/MM</option>
+              <option value="ddmmaa">DD/MM/AA</option>
+              <option value="ddmmaaaa">DD/MM/AAAA</option>
+            </select>
+          </div>
+          <label class="checkbox-option" for="showCollectionTime">
+            <input type="checkbox" id="showCollectionTime">
+            Mostrar horário da coleta
+          </label>
+        </div>
+
+        <div class="row input-row">
+          <label for="input"><strong>Texto do laudo</strong></label>
+          <textarea id="input" placeholder="Cole aqui o laudo inteiro com as culturas..."></textarea>
+        </div>
+
+        <div class="row output-row">
+          <label for="output"><strong>Saída automática</strong></label>
+          <textarea id="output" readonly placeholder="O resultado aparecerá aqui automaticamente..."></textarea>
+        </div>
+
+        <div class="draft-actions panel-actions">
+          <button id="addToDraftBtn" type="button" class="primary-btn">Adicionar ao rascunho</button>
+          <button id="copyBtn" type="button" class="copy-button">Copiar saída</button>
+          <button id="clearCurrentBtn" type="button" class="secondary-btn">Limpar laudo atual</button>
+        </div>
+      </section>
+
+      <section class="panel draft-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Rascunho final</h2>
+            <p class="small">Texto acumulado para copiar ao prontuário.</p>
+          </div>
+        </div>
+
+        <div class="row draft-row">
+          <label for="draft"><strong>Rascunho acumulado</strong></label>
+          <textarea id="draft" placeholder="Os resumos adicionados aparecerão aqui..."></textarea>
+        </div>
+
+        <div class="draft-actions panel-actions">
+          <button id="copyDraftBtn" type="button" class="copy-button">Copiar rascunho</button>
+          <button id="clearDraftBtn" type="button" class="secondary-btn">Limpar rascunho</button>
+        </div>
+      </section>
+    </main>
+
+    <section class="panel antibiotics-panel">
     <h3>Antibióticos a exibir</h3>
     <p style="font-size: 0.9rem; margin-bottom: 4px;">
       Clique para selecionar quais antibióticos devem aparecer no antibiograma.
@@ -36,7 +93,7 @@
     </div>
 
   <div class="antibiotic-categories">
-    <section class="antibiotic-category-box" data-category="betalactamicos">
+    <section class="antibiotic-category-box box-betalactamicos" data-category="betalactamicos">
       <div class="category-header">
         <h4>Betalactâmicos</h4>
         <div class="category-controls">
@@ -63,7 +120,7 @@
       </div>
     </section>
 
-    <section class="antibiotic-category-box" data-category="quinolonas">
+    <section class="antibiotic-category-box box-quinolonas" data-category="quinolonas">
       <div class="category-header">
         <h4>Quinolonas</h4>
         <div class="category-controls">
@@ -77,7 +134,7 @@
       </div>
     </section>
 
-    <section class="antibiotic-category-box" data-category="aminoglicosideos">
+    <section class="antibiotic-category-box box-aminoglicosideos" data-category="aminoglicosideos">
       <div class="category-header">
         <h4>Aminoglicosídeos</h4>
         <div class="category-controls">
@@ -92,7 +149,7 @@
       </div>
     </section>
 
-    <section class="antibiotic-category-box" data-category="tetraciclinas">
+    <section class="antibiotic-category-box box-tetraciclinas" data-category="tetraciclinas">
       <div class="category-header">
         <h4>Tetraciclinas</h4>
         <div class="category-controls">
@@ -106,7 +163,22 @@
       </div>
     </section>
 
-    <section class="antibiotic-category-box" data-category="outros">
+    <section class="antibiotic-category-box box-glicolipopeptideos" data-category="glicolipopeptideos">
+      <div class="category-header">
+        <h4>Glico/Lipopeptídeos</h4>
+        <div class="category-controls">
+          <button type="button" class="category-toggle category-select-all" data-category="glicolipopeptideos">Selecionar todos</button>
+          <button type="button" class="category-toggle category-clear" data-category="glicolipopeptideos">Limpar seleção</button>
+        </div>
+      </div>
+      <div class="antibiotic-filters vertical-list">
+        <button type="button" class="antibiotic-btn" data-antibiotico="Vancomicina">Vancomicina</button>
+        <button type="button" class="antibiotic-btn" data-antibiotico="Teicoplanina">Teicoplanina</button>
+        <button type="button" class="antibiotic-btn" data-antibiotico="Daptomicina">Daptomicina</button>
+      </div>
+    </section>
+
+    <section class="antibiotic-category-box box-outros" data-category="outros">
       <div class="category-header">
         <h4>Outros</h4>
         <div class="category-controls">
@@ -126,22 +198,7 @@
       </div>
     </section>
 
-    <section class="antibiotic-category-box" data-category="glicolipopeptideos">
-      <div class="category-header">
-        <h4>Glico/Lipopeptídeos</h4>
-        <div class="category-controls">
-          <button type="button" class="category-toggle category-select-all" data-category="glicolipopeptideos">Selecionar todos</button>
-          <button type="button" class="category-toggle category-clear" data-category="glicolipopeptideos">Limpar seleção</button>
-        </div>
-      </div>
-      <div class="antibiotic-filters vertical-list">
-        <button type="button" class="antibiotic-btn" data-antibiotico="Vancomicina">Vancomicina</button>
-        <button type="button" class="antibiotic-btn" data-antibiotico="Teicoplanina">Teicoplanina</button>
-        <button type="button" class="antibiotic-btn" data-antibiotico="Daptomicina">Daptomicina</button>
-      </div>
-    </section>
-
-    <section class="antibiotic-category-box" data-category="antifungicos">
+    <section class="antibiotic-category-box box-antifungicos" data-category="antifungicos">
       <div class="category-header">
         <h4>Antifúngicos</h4>
         <div class="category-controls">
@@ -155,33 +212,18 @@
       </div>
     </section>
 
-  </div>    
-    <div class="row output-row">
-      <label for="output"><strong>Texto formatado para o prontuário (saída automática)</strong></label>
-      <textarea id="output" readonly placeholder="O resultado aparecerá aqui automaticamente..."></textarea>
-    </div>
-
-    <div class="draft-actions">
-      <button id="addToDraftBtn" type="button" class="primary-btn">Adicionar ao rascunho</button>
-      <button id="copyBtn" type="button" class="copy-button">Copiar saída</button>
-    </div>
-
-    <div class="row draft-row">
-      <label for="draft"><strong>Rascunho acumulado</strong></label>
-      <textarea id="draft" placeholder="Os resumos adicionados aparecerão aqui..."></textarea>
-    </div>
-
-    <div class="draft-actions">
-      <button id="copyDraftBtn" type="button" class="copy-button">Copiar rascunho</button>
-      <button id="clearDraftBtn" type="button" class="secondary-btn">Limpar rascunho</button>
-    </div>
-
-    <div> 
-    <p class="citation" id="fraseMotivacional"> 
-    </p>
-    </div>
   </div>
-    
+    </section>
+
+    <div>
+      <p class="citation" id="fraseMotivacional"></p>
+    </div>
+
+    <footer class="page-footer">
+      Última atualização 26/05/2026
+    </footer>
+  </div>
+
 <script>
   const frases = [
     "Cuidar, ensinar e aprender — todos os dias.",
@@ -216,18 +258,6 @@
 </script>
 
   <script src="script.js"></script>
-
   <div id="toast" class="toast">Copiado!</div>
-  
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-

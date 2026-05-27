@@ -23,9 +23,24 @@ function canonicalKey(str) {
     .trim();
 }
 
-function ddmm(dateStr) {
-  const m = String(dateStr || "").match(/(\d{2})\/(\d{2})/);
-  return m ? `${m[1]}/${m[2]}` : "";
+function formatCollectionDate(dateStr, timeStr) {
+  const m = String(dateStr || "").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return "";
+
+  const format = document.getElementById("dateFormat")?.value || "ddmm";
+  const showTime = Boolean(document.getElementById("showCollectionTime")?.checked);
+
+  const dd = m[1];
+  const mm = m[2];
+  const yyyy = m[3];
+  const yy = yyyy.slice(-2);
+
+  let dateLabel = `${dd}/${mm}`;
+  if (format === "ddmmaa") dateLabel = `${dd}/${mm}/${yy}`;
+  if (format === "ddmmaaaa") dateLabel = `${dd}/${mm}/${yyyy}`;
+
+  const timeLabel = String(timeStr || "").match(/^\d{2}:\d{2}$/) ? timeStr : "";
+  return showTime && timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel;
 }
 
 function toTitleCase(str) {
@@ -325,6 +340,7 @@ function newExam(manualMaterial) {
   const manual = String(manualMaterial || "").trim();
   return {
     collectionDate: null,
+    collectionTime: null,
     isPartial: false,
     material: manual || "Material não informado",
     orgs: [],
@@ -350,8 +366,27 @@ function setOrgName(exam, number, name) {
   return org;
 }
 
+function stripLegendFromAntimicrobialSegment(segment) {
+  // Alguns PDFs CLSI colam a legenda na mesma linha do resultado:
+  //   PENICILINA >= 0,5 R I - Intermediário
+  //   RIFAMPICINA <= 0,03 S R - Resistente
+  //   SULFA + TRIMETHOPRIM <= 10 S D - (SDD) Sensível Dose Dependente
+  // Sem remover isso, o parser acabava lendo a letra da legenda como se fosse
+  // a classificação do antibiótico.
+  return String(segment || "")
+    .replace(/\bS\s*-\s*Sens[ií]vel[\s\S]*$/i, "")
+    .replace(/\bI\s*-\s*Intermedi[aá]rio[\s\S]*$/i, "")
+    .replace(/\bR\s*-\s*Resistente[\s\S]*$/i, "")
+    .replace(/\bD\s*-\s*\(?(?:SDD)?\)?\s*Sens[ií]vel\s+Dose\s+Dependente[\s\S]*$/i, "")
+    .replace(/\bP\s*-\s*Positivo[\s\S]*$/i, "")
+    .replace(/\bN\s*-\s*Negativo[\s\S]*$/i, "")
+    .replace(/\bLegenda\b[\s\S]*$/i, "")
+    .trim();
+}
+
 function classifySegment(segment, abName) {
-  const s = normalizePlain(segment);
+  const cleanSegment = stripLegendFromAntimicrobialSegment(segment);
+  const s = normalizePlain(cleanSegment);
 
   if (/consultar\s+observa/.test(s)) return ["Obs"];
   if (/sensivel\s+dose\s+dependente/.test(s) || /\bsdd\b/.test(s)) return ["D"];
@@ -364,11 +399,11 @@ function classifySegment(segment, abName) {
   const tokens = [];
   const re = /(?:^|\s)([SRID])(?=\s|$)/gi;
   let m;
-  while ((m = re.exec(segment)) !== null) tokens.push(m[1].toUpperCase());
+  while ((m = re.exec(cleanSegment)) !== null) tokens.push(m[1].toUpperCase());
 
   if (tokens.length) return tokens;
 
-  if (/colistina/i.test(abName) && /\*/.test(segment)) return ["S"];
+  if (/colistina/i.test(abName) && /\*/.test(cleanSegment)) return ["S"];
   return [];
 }
 
@@ -582,7 +617,7 @@ function finalizeExam(exam, out) {
 
   if (!exam.orgs.length) return;
 
-  const date = ddmm(exam.collectionDate);
+  const date = formatCollectionDate(exam.collectionDate, exam.collectionTime);
   const orgText = exam.orgs
     .sort((a, b) => a.number - b.number)
     .map((org) => {
@@ -626,10 +661,12 @@ function parseCultures(text, manualMaterial) {
     const line = String(rawLine || "").trim();
     if (!line) continue;
 
-    const mCollection = line.match(/^Coletado em:\s*(\d{2}\/\d{2}\/\d{4})(?:\s+\d{2}:\d{2})?/i);
+    const mCollection = line.match(/^Coletado em:\s*(\d{2}\/\d{2}\/\d{4})(?:\s+(\d{2}:\d{2}))?/i);
     if (mCollection) {
       if (exam && (exam.collectionDate || exam.orgs.length)) finishExam();
-      ensureExam().collectionDate = mCollection[1];
+      const current = ensureExam();
+      current.collectionDate = mCollection[1];
+      current.collectionTime = mCollection[2] || null;
       continue;
     }
 
@@ -785,8 +822,11 @@ function clearDraft() {
 
 document.getElementById("input")?.addEventListener("input", updateOutputFromCurrentInput);
 document.getElementById("manualMaterial")?.addEventListener("input", updateOutputFromCurrentInput);
+document.getElementById("dateFormat")?.addEventListener("change", updateOutputFromCurrentInput);
+document.getElementById("showCollectionTime")?.addEventListener("change", updateOutputFromCurrentInput);
 document.getElementById("processBtn")?.addEventListener("click", updateOutputFromCurrentInput);
 document.getElementById("addToDraftBtn")?.addEventListener("click", appendOutputToDraft);
+document.getElementById("clearCurrentBtn")?.addEventListener("click", () => { clearCurrentLaudo(); showToast("Laudo atual limpo"); });
 document.getElementById("copyBtn")?.addEventListener("click", () => copyTextareaValue("output", "Saída copiada!"));
 document.getElementById("copyDraftBtn")?.addEventListener("click", () => copyTextareaValue("draft", "Rascunho copiado!"));
 document.getElementById("clearDraftBtn")?.addEventListener("click", clearDraft);
