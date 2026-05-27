@@ -127,11 +127,28 @@
         box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
       }
 
-    #output {
+    #output, #draft {
       background: #FFF;
       color: #000;
       min-height: 150px;
-      white-space: pre;
+      white-space: pre-wrap;
+    }
+
+    #draft {
+      min-height: 220px;
+      background: #fcfcfd;
+    }
+
+    .draft-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 10px 0 14px;
+    }
+
+    .draft-row {
+      margin-top: 18px;
     }
 
    .antibiotic-filters {
@@ -229,4 +246,115 @@
   text-align: center;
   font-style: italic;
   color: #555;
+}
+
+/* Organização dos seletores por categoria */
+.antibiotic-categories {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(135px, 1fr));
+  gap: 8px;
+  margin: 12px 0 18px;
+  align-items: start;
+}
+
+.antibiotic-category-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 8px;
+  min-width: 0;
+}
+
+.category-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.antibiotic-category-box h4 {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  color: #374151;
+}
+
+.category-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.category-toggle {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 3px 6px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 0.66rem;
+  line-height: 1.15;
+  text-align: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.category-toggle:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.category-toggle.active {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #075985;
+  font-weight: 600;
+}
+
+.category-toggle.category-clear.active {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.antibiotic-category-box .antibiotic-filters {
+  margin-bottom: 0;
+}
+
+.antibiotic-filters.vertical-list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.antibiotic-filters.vertical-list .antibiotic-btn {
+  width: 100%;
+  min-height: 24px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  text-align: left;
+  white-space: normal;
+}
+
+@media (max-width: 1250px) {
+  .antibiotic-categories {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .antibiotic-categories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .antibiotic-categories {
+    grid-template-columns: 1fr;
+  }
 }

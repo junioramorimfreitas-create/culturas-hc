@@ -152,6 +152,19 @@ antibioticButtons.forEach((btn) => {
   if (label) antibioticsWithButtons.add(canonicalKey(label));
 });
 
+function antibioticFilterKeys(name) {
+  const key = canonicalKey(String(name || "").replace(/__HL__/gi, "HL"));
+  const keys = [key];
+
+  // No laudo do Enterococcus, aminoglicosídeos de alto nível aparecem como
+  // Gentamicina (HL) e Estreptomicina (HL). Na interface, mantemos apenas os
+  // botões-base Gentamicina e Estreptomicina. Por isso, para o filtro,
+  // também testamos a versão sem o sufixo HL.
+  if (key.endsWith("hl")) keys.push(key.replace(/hl$/, ""));
+
+  return [...new Set(keys.filter(Boolean))];
+}
+
 function filterFormattedByAntibiotics(text, selectedSet) {
   if (!selectedSet) return text || "";
 
@@ -179,9 +192,15 @@ function filterFormattedByAntibiotics(text, selectedSet) {
           const cls = m[1];
           const names = m[2].split(",").map((x) => x.trim()).filter(Boolean);
           const keptNames = names.filter((name) => {
-            const key = canonicalKey(name.replace(hl, "HL"));
-            if (!antibioticsWithButtons.has(key)) return true;
-            return selectedSet.has(key);
+            const keys = antibioticFilterKeys(name.replace(hl, "HL"));
+            const keysWithButtons = keys.filter((key) => antibioticsWithButtons.has(key));
+
+            // Se não existe botão correspondente, não removemos automaticamente.
+            if (!keysWithButtons.length) return true;
+
+            // Se qualquer chave equivalente estiver selecionada, mantém.
+            // Ex.: Gentamicina (HL) é mantida quando Gentamicina está selecionada.
+            return keysWithButtons.some((key) => selectedSet.has(key));
           });
 
           if (keptNames.length) keptBlocks.push(`${cls}: ${keptNames.join(", ")}`);
@@ -196,42 +215,89 @@ function filterFormattedByAntibiotics(text, selectedSet) {
 }
 
 function applyAntibioticFilter() {
-  const outputEl = document.getElementById("output");
-  if (outputEl) outputEl.value = filterFormattedByAntibiotics(lastFormattedText, selectedAntibiotics);
+  updateOutputFromCurrentInput();
+}
+
+function getAntibioticButtonKey(btn) {
+  const label = (btn?.dataset?.antibiotico || "").trim();
+  return label ? canonicalKey(label) : "";
+}
+
+function setAntibioticButtonSelected(btn, selected) {
+  const key = getAntibioticButtonKey(btn);
+  if (!key) return;
+
+  if (selected) {
+    selectedAntibiotics.add(key);
+    btn.classList.add("selected");
+  } else {
+    selectedAntibiotics.delete(key);
+    btn.classList.remove("selected");
+  }
+}
+
+function updateCategoryToggles() {
+  document.querySelectorAll(".antibiotic-category-box").forEach((box) => {
+    const buttons = Array.from(box.querySelectorAll(".antibiotic-btn[data-antibiotico]"));
+    const selectAll = box.querySelector(".category-select-all");
+    const clear = box.querySelector(".category-clear");
+
+    if (!buttons.length) return;
+
+    const selectedCount = buttons.filter((btn) => selectedAntibiotics.has(getAntibioticButtonKey(btn))).length;
+    const allSelected = selectedCount === buttons.length;
+    const noneSelected = selectedCount === 0;
+
+    if (selectAll) {
+      selectAll.classList.toggle("active", allSelected);
+      selectAll.title = allSelected ? "Todos os itens desta categoria já estão selecionados" : "Selecionar todos desta categoria";
+    }
+
+    if (clear) {
+      clear.classList.toggle("active", noneSelected);
+      clear.title = noneSelected ? "Esta categoria já está limpa" : "Limpar seleção desta categoria";
+    }
+  });
+}
+
+function applyCategorySelection(box, selected) {
+  const buttons = box.querySelectorAll(".antibiotic-btn[data-antibiotico]");
+  buttons.forEach((btn) => setAntibioticButtonSelected(btn, selected));
+  updateCategoryToggles();
+  applyAntibioticFilter();
 }
 
 function setAllAntibiotics(selected) {
   selectedAntibiotics.clear();
-  antibioticButtons.forEach((btn) => {
-    const label = (btn.dataset.antibiotico || "").trim();
-    if (!label) return;
-
-    const key = canonicalKey(label);
-    if (selected) {
-      selectedAntibiotics.add(key);
-      btn.classList.add("selected");
-    } else {
-      btn.classList.remove("selected");
-    }
-  });
+  antibioticButtons.forEach((btn) => setAntibioticButtonSelected(btn, selected));
+  updateCategoryToggles();
   applyAntibioticFilter();
 }
 
 antibioticButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
-    const label = (btn.dataset.antibiotico || "").trim();
-    if (!label) return;
+    const key = getAntibioticButtonKey(btn);
+    if (!key) return;
 
-    const key = canonicalKey(label);
-    if (selectedAntibiotics.has(key)) {
-      selectedAntibiotics.delete(key);
-      btn.classList.remove("selected");
-    } else {
-      selectedAntibiotics.add(key);
-      btn.classList.add("selected");
-    }
-
+    setAntibioticButtonSelected(btn, !selectedAntibiotics.has(key));
+    updateCategoryToggles();
     applyAntibioticFilter();
+  });
+});
+
+document.querySelectorAll(".category-select-all").forEach((button) => {
+  button.addEventListener("click", () => {
+    const box = button.closest(".antibiotic-category-box");
+    if (!box) return;
+    applyCategorySelection(box, true);
+  });
+});
+
+document.querySelectorAll(".category-clear").forEach((button) => {
+  button.addEventListener("click", () => {
+    const box = button.closest(".antibiotic-category-box");
+    if (!box) return;
+    applyCategorySelection(box, false);
   });
 });
 
@@ -652,24 +718,78 @@ window.parseCultures = parseCultures;
    BOTÕES DA INTERFACE
    =============================== */
 
-document.getElementById("processBtn")?.addEventListener("click", () => {
-  const raw = document.getElementById("input")?.value || "";
-  const manualMaterial = document.getElementById("manualMaterial")?.value || "";
-  lastFormattedText = parseCultures(raw, manualMaterial);
-  document.getElementById("output").value = filterFormattedByAntibiotics(lastFormattedText, selectedAntibiotics);
-});
+function updateOutputFromCurrentInput() {
+  const inputEl = document.getElementById("input");
+  const outputEl = document.getElementById("output");
+  const manualMaterialEl = document.getElementById("manualMaterial");
+  if (!inputEl || !outputEl) return;
 
-document.getElementById("copyBtn")?.addEventListener("click", async () => {
-  const output = document.getElementById("output");
-  if (!output) return;
+  const raw = inputEl.value || "";
+  const manualMaterial = manualMaterialEl?.value || "";
+
+  if (!raw.trim()) {
+    lastFormattedText = "";
+    outputEl.value = "";
+    return;
+  }
+
+  lastFormattedText = parseCultures(raw, manualMaterial);
+  outputEl.value = filterFormattedByAntibiotics(lastFormattedText, selectedAntibiotics);
+}
+
+function clearCurrentLaudo() {
+  const inputEl = document.getElementById("input");
+  const outputEl = document.getElementById("output");
+  if (inputEl) inputEl.value = "";
+  if (outputEl) outputEl.value = "";
+  lastFormattedText = "";
+}
+
+function appendOutputToDraft() {
+  const outputEl = document.getElementById("output");
+  const draftEl = document.getElementById("draft");
+  if (!outputEl || !draftEl) return;
+
+  const textToAdd = outputEl.value.trim();
+  if (!textToAdd) {
+    showToast("Nada para adicionar");
+    return;
+  }
+
+  const currentDraft = draftEl.value.trimEnd();
+  draftEl.value = currentDraft ? `${currentDraft}
+${textToAdd}` : textToAdd;
+
+  clearCurrentLaudo();
+  showToast("Adicionado ao rascunho");
+}
+
+async function copyTextareaValue(textareaId, successMessage = "Copiado!") {
+  const el = document.getElementById(textareaId);
+  if (!el) return;
 
   try {
-    await navigator.clipboard.writeText(output.value);
-    showToast("Copiado!");
+    await navigator.clipboard.writeText(el.value || "");
+    showToast(successMessage);
   } catch (err) {
     showToast("Erro ao copiar");
   }
-});
+}
+
+function clearDraft() {
+  const draftEl = document.getElementById("draft");
+  if (!draftEl) return;
+  draftEl.value = "";
+  showToast("Rascunho limpo");
+}
+
+document.getElementById("input")?.addEventListener("input", updateOutputFromCurrentInput);
+document.getElementById("manualMaterial")?.addEventListener("input", updateOutputFromCurrentInput);
+document.getElementById("processBtn")?.addEventListener("click", updateOutputFromCurrentInput);
+document.getElementById("addToDraftBtn")?.addEventListener("click", appendOutputToDraft);
+document.getElementById("copyBtn")?.addEventListener("click", () => copyTextareaValue("output", "Saída copiada!"));
+document.getElementById("copyDraftBtn")?.addEventListener("click", () => copyTextareaValue("draft", "Rascunho copiado!"));
+document.getElementById("clearDraftBtn")?.addEventListener("click", clearDraft);
 
 function showToast(message) {
   const toast = document.getElementById("toast");
