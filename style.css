@@ -1,518 +1,128 @@
-    * {
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+/* =========================================================
+   Design System - Resumo de Culturas HCFMUSP
+   Estilo Clínico Moderno: Limpo, Profissional e Intuitivo
+   ========================================================= */
 
-    body {
-      margin: 0;
-      padding: 16px;
-      background: #f3f4f6;
-      color: #111827;
-    }
+:root {
+  /* Font Families */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-title: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    .container {
-      max-width: 1500px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    }
+  /* Color Palette */
+  --bg-page: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  --bg-panel: #ffffff;
+  --text-main: #0f172a;       /* Slate 900 */
+  --text-medium: #334155;     /* Slate 700 */
+  --text-muted: #64748b;      /* Slate 500 */
+  --border-color: #e2e8f0;    /* Slate 200 */
+  
+  /* Primary Accent & Brand */
+  --accent-blue: #3b82f6;     /* Blue 500 */
+  --accent-indigo: #4f46e5;   /* Indigo 600 */
+  --accent-gradient: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-indigo) 100%);
+  --accent-light: rgba(59, 130, 246, 0.1);
+  --accent-hover: #2563eb;
+  
+  /* Actions and Highlights */
+  --color-success: #10b981;   /* Emerald 500 */
+  --color-success-dark: #059669;
+  --color-danger: #ef4444;    /* Red 500 */
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.04), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
 
-    h1 {
-      font-size: 1.4rem;
-      margin-bottom: 4px;
-      text-align: center;
-    }
-
-    h3 {
-      margin-bottom: 4px;
-    }
-
-    h3 + p {
-      margin-top: 0;
-    }
-
-    .small {
-      font-size: 0.8rem;
-      color: #6b7280;
-    }
-
-    label {
-      font-size: 0.9rem;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 170px;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-      resize: vertical;
-      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.85rem;
-      background: #f9fafb;
-      white-space: pre-wrap;
-    }
-
-    textarea:focus {
-      outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 1px #2563eb33;
-      background: #ffffff;
-    }
-
-
-    .text-input {
-      width: 100%;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-      font-family: inherit;
-      font-size: 0.9rem;
-      background: #f9fafb;
-    }
-
-    .text-input:focus {
-      outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 1px #2563eb33;
-      background: #ffffff;
-    }
-
-    .select-input {
-      width: 100%;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-      font-family: inherit;
-      font-size: 0.9rem;
-      background: #f9fafb;
-    }
-
-    .select-input:focus {
-      outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 1px #2563eb33;
-      background: #ffffff;
-    }
-
-    .date-options {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      align-items: end;
-      margin-bottom: 12px;
-      padding: 12px;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      background: #f9fafb;
-    }
-
-    .date-option-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 180px;
-    }
-
-    .checkbox-option {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 38px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      color: #111827;
-    }
-
-    .checkbox-option input {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
-
-    .row {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-bottom: 12px;
-    }
-
-   .controls {
-     display: flex;
-     flex-wrap: wrap;
-     gap: 8px;
-     align-items: center;
-     justify-content: space-between;
-     margin: 15px 0;
-   }
-
-    .antibiotic-actions {
-      margin-top: 20px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-
-    button:active {
-      transform: translateY(0);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-
-      button.primary-btn {
-        padding: 8px 16px;
-        border-radius: 999px;
-        border: none;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.9rem;
-        background: #68cc73;
-        color: #ffffff;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
-    }
-
-    button.primary-btn:hover {
-        background: #73d17e;
-        transform: translateY(-1px);
-        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
-      }
-
-    #output, #draft {
-      background: #FFF;
-      color: #000;
-      min-height: 150px;
-      white-space: pre-wrap;
-    }
-
-    #draft {
-      min-height: 220px;
-      background: #fcfcfd;
-    }
-
-    .draft-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin: 10px 0 14px;
-    }
-
-    .draft-row {
-      margin-top: 18px;
-    }
-
-   .antibiotic-filters {
-       display: flex;
-       flex-wrap: wrap;
-       gap: 6px;
-       margin-bottom: 10px;
-   }
-   
-   .antibiotic-btn {
-       border: 1px solid #ccc;
-       border-radius: 16px;
-       padding: 4px 10px;
-       font-size: 0.85rem;
-       background-color: #f5f5f5;
-       cursor: pointer;
-       color: #000 !important;
-       transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-   }
-
-   .antibiotic-btn:hover {
-       background-color: #e8e8e8;
-   }
-   
-    .antibiotic-btn.selected {
-       background-color: #1976d2;
-       border-color: #1976d2;
-       color: #fff !important;
-    }
-
-    .antibiotic-btn:hover {
-      background-color: #218af4;
-      border-color: #218af4;
-      color: #fff !important;
-    }
-
-     .secondary-btn {
-       padding: 6px 12px;
-       border-radius: 10px;
-       border: 1px solid #d1d5db;
-       background: #ffffff;
-       color: #111827;
-       cursor: pointer;
-       font-size: 0.85rem;
-       transition: background-color 0.12s ease, border-color 0.12s ease;
-     }
-
-     .secondary-btn:hover {
-       background: #f3f4f6;
-       border-color: #9ca3af;
-     }
-
-     .copy-button {
-      margin-top: 10px;
-      padding: 8px 14px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      }
-
-    .copy-button:hover {
-      background: #005fcc;
-     }
-
-     .toast {
-  visibility: hidden;
-  min-width: 140px;
-  background-color: #6fc07b;
-  color: #fff;
-  text-align: center;
-  border-radius: 8px;
-  padding: 10px 16px;
-  position: fixed;
-  z-index: 1000;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 14px;
-  opacity: 0;
-  transition: opacity 0.4s ease, visibility 0.4s;
+  /* Transition Curve */
+  --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.toast.show {
-  visibility: visible;
-  opacity: 1;
-}
+/* ===============================
+   REGRAS GERAIS & RESET
+   =============================== */
 
-.citation {
-  position: relative;
-  bottom: 0;
-  margin-top: 40px;
-  text-align: center;
-  font-style: italic;
-  color: #555;
-}
-
-/* Organização dos seletores por categoria */
-.antibiotic-categories {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(135px, 1fr));
-  gap: 8px;
-  margin: 12px 0 18px;
-  align-items: start;
-}
-
-.antibiotic-category-box {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #f9fafb;
-  padding: 8px;
-  min-width: 0;
-}
-
-.category-header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.antibiotic-category-box h4 {
+* {
+  box-sizing: border-box;
   margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.15;
-  color: #1f2937;
-  font-weight: 700;
+  padding: 0;
 }
 
-.category-controls {
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.5;
+  padding: 24px 16px;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 24px;
 }
 
-.category-toggle {
-  width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 3px 6px;
-  background: #ffffff;
-  color: #374151;
-  cursor: pointer;
-  font-size: 0.66rem;
-  line-height: 1.15;
-  text-align: center;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
+/* ===============================
+   CABEÇALHO DA PÁGINA
+   =============================== */
 
-.category-toggle:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  color: #1d4ed8;
-}
-
-.category-toggle.active {
-  background: #e0f2fe;
-  border-color: #38bdf8;
-  color: #075985;
-  font-weight: 600;
-}
-
-.category-toggle.category-clear.active {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.antibiotic-category-box .antibiotic-filters {
-  margin-bottom: 0;
-}
-
-.antibiotic-filters.vertical-list {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 4px;
-}
-
-.antibiotic-filters.vertical-list .antibiotic-btn {
-  width: 100%;
-  min-height: 24px;
-  padding: 3px 7px;
-  border-radius: 8px;
-  font-size: 0.72rem;
-  line-height: 1.15;
-  text-align: left;
-  white-space: normal;
-}
-
-
-/* Cores pastéis por categoria */
-.antibiotic-category-box.box-betalactamicos {
-  background: #ecfdf3;
-  border-color: #bbf7d0;
-}
-
-.antibiotic-category-box.box-quinolonas {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-}
-
-.antibiotic-category-box.box-aminoglicosideos {
-  background: #fff7ed;
-  border-color: #fed7aa;
-}
-
-.antibiotic-category-box.box-tetraciclinas {
-  background: #faf5ff;
-  border-color: #e9d5ff;
-}
-
-.antibiotic-category-box.box-glicolipopeptideos {
-  background: #fefce8;
-  border-color: #fde68a;
-}
-
-.antibiotic-category-box.box-outros {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-
-.antibiotic-category-box.box-antifungicos {
-  background: #fff1f2;
-  border-color: #fecdd3;
-}
-
-.antibiotic-category-box .category-toggle,
-.antibiotic-category-box .antibiotic-btn {
-  background-color: rgba(255, 255, 255, 0.82);
-}
-
-@media (max-width: 1250px) {
-  .antibiotic-categories {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-}
-
-@media (max-width: 700px) {
-  .antibiotic-categories {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 460px) {
-  .antibiotic-categories {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Botão selecionado estilo “chip ativo”: fundo branco, borda azul,
-   texto escuro e check à esquerda. */
-.antibiotic-category-box .antibiotic-btn.selected,
-.antibiotic-category-box .antibiotic-btn.selected:hover,
-.antibiotic-btn.selected,
-.antibiotic-btn.selected:hover {
-  background-color: #ffffff !important;
-  border: 2px solid #2563eb !important;
-  color: #111827 !important;
-  font-weight: 700;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);
-}
-
-.antibiotic-category-box .antibiotic-btn.selected::before,
-.antibiotic-btn.selected::before {
-  content: "✓ ";
-  color: #2563eb;
-  font-weight: 800;
-}
-
-.antibiotic-category-box .antibiotic-btn:not(.selected):hover,
-.antibiotic-btn:not(.selected):hover {
-  background-color: #f8fafc !important;
-  border-color: #94a3b8 !important;
-  color: #111827 !important;
-}
-
-
-/* Layout v18: dois blocos superiores + antimicrobianos embaixo */
 .page-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 8px;
+  padding: 16px 0;
 }
 
 .page-header h1 {
-  margin: 0 0 8px 0;
-  text-align: center;
+  font-family: var(--font-title);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.025em;
+  margin-bottom: 6px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .page-header .small {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  max-width: 600px;
   margin: 0 auto;
-  text-align: center;
+  font-weight: 400;
 }
+
+/* ===============================
+   LAYOUT GRID & PAINÉIS
+   =============================== */
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
+  gap: 24px;
   align-items: stretch;
-  margin-bottom: 18px;
 }
 
 .panel {
-  border: 1px solid #e5e7eb;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
-  background: #ffffff;
-  padding: 18px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: var(--transition-smooth);
+}
+
+.panel:hover {
+  box-shadow: var(--shadow-xl);
+  border-color: rgba(203, 213, 225, 0.8);
 }
 
 .panel-header {
@@ -520,62 +130,517 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 10px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #eef2f7;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .panel h2 {
-  margin: 0 0 2px;
-  font-size: 1.08rem;
-  line-height: 1.2;
-  color: #111827;
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
 }
 
-.current-panel,
-.draft-panel {
+.panel-header .small {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.small {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ===============================
+   INPUTS & TEXTAREAS
+   =============================== */
+
+.row {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-medium);
+}
+
+.text-input,
+.select-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  background: #f8fafc;
+  color: var(--text-main);
+  transition: var(--transition-smooth);
+}
+
+.text-input:focus,
+.select-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Date Options Panel */
+.date-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.date-option-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.checkbox-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-medium);
+  user-select: none;
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  accent-color: var(--accent-blue);
+}
+
+/* Textareas */
+textarea {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  background: #f8fafc;
+  color: #1e293b;
+  line-height: 1.6;
+  transition: var(--transition-smooth);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .input-row textarea {
-  min-height: 190px;
+  min-height: 180px;
 }
 
 .output-row textarea {
   min-height: 130px;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 .draft-panel .draft-row {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-top: 0;
 }
 
 .draft-panel #draft {
   flex: 1;
-  min-height: 430px;
+  min-height: 410px;
+  background: #fcfcfd;
 }
+
+/* ===============================
+   BOTÕES & AÇÕES
+   =============================== */
 
 .panel-actions {
-  margin-top: auto;
-  padding-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
 }
 
+/* Botões Genéricos */
+button {
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition-smooth);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Primary Button (Sucesso / Adicionar) */
+button.primary-btn {
+  background: var(--color-success);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+button.primary-btn:hover {
+  background: var(--color-success-dark);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+}
+
+/* Copy Button (Azul Primário) */
+button.copy-button {
+  background: var(--accent-gradient);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+button.copy-button:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+/* Secondary Button (Neutral / Bordered) */
+button.secondary-btn {
+  background: #ffffff;
+  color: var(--text-medium);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+button.secondary-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: var(--text-main);
+}
+
+/* Reset / Control buttons */
+.antibiotic-actions {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+
+.antibiotic-control {
+  font-size: 0.82rem;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-medium);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+  transition: var(--transition-smooth);
+}
+
+.antibiotic-control:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: var(--text-main);
+}
+
+/* ===============================
+   SELETORES DE ANTIBIÓTICOS (PAINEL)
+   =============================== */
+
 .antibiotics-panel {
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .antibiotics-panel > h3 {
-  margin-top: 0;
-  font-size: 1.08rem;
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
 }
 
-.antibiotics-panel .antibiotic-actions {
-  margin-top: 12px;
-  margin-bottom: 14px;
+.antibiotic-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+  align-items: stretch; /* Keep uniform row heights */
 }
+
+/* Clean, modern and discrete category card */
+.antibiotic-category-box {
+  background: #ffffff; /* pure white background for clinical simplicity */
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: var(--transition-smooth);
+}
+
+.antibiotic-category-box:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #cbd5e1;
+}
+
+.category-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid #f1f5f9; /* Soft solid separator */
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.antibiotic-category-box h4 {
+  font-family: var(--font-title);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.category-controls {
+  display: flex;
+  gap: 4px; /* Side-by-side button group layout */
+}
+
+/* Compact filter toggles (Select / Clear) */
+.category-toggle {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: var(--transition-smooth);
+}
+
+.category-toggle:hover {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+.category-toggle.active {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+  box-shadow: none;
+}
+
+/* Antibiotic List Container */
+.antibiotic-filters.vertical-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-grow: 1;
+}
+
+/* Compact chip-style drug button */
+.antibiotic-category-box .antibiotic-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.72rem; /* Compact, highly readable */
+  line-height: 1.2;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: var(--text-medium) !important;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+.antibiotic-category-box .antibiotic-btn:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: var(--text-main) !important;
+}
+
+/* Active Selected Chip Style: light blue background, blue border, blue text */
+.antibiotic-category-box .antibiotic-btn.selected,
+.antibiotic-category-box .antibiotic-btn.selected:hover,
+.antibiotic-btn.selected,
+.antibiotic-btn.selected:hover {
+  background-color: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  color: #2563eb !important;
+  font-weight: 600;
+  box-shadow: none;
+  padding: 5px 8px; /* No height jump since border width remains 1px */
+}
+
+/* Add checkmark dynamically */
+.antibiotic-category-box .antibiotic-btn.selected::before,
+.antibiotic-btn.selected::before {
+  content: "✓";
+  color: #2563eb;
+  font-weight: 700;
+  margin-right: 4px;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ===============================
+   CATEGORIAS: PALETA DE COR SUTIL (Bordas e Títulos)
+   =============================== */
+
+/* Betalactâmicos - Mint Green Accent */
+.antibiotic-category-box.box-betalactamicos {
+  border-top: 4px solid #10b981;
+}
+.antibiotic-category-box.box-betalactamicos h4 {
+  color: #059669;
+}
+
+/* Quinolonas - Soft Blue Accent */
+.antibiotic-category-box.box-quinolonas {
+  border-top: 4px solid #3b82f6;
+}
+.antibiotic-category-box.box-quinolonas h4 {
+  color: #2563eb;
+}
+
+/* Aminoglicosídeos - Warm Amber Accent */
+.antibiotic-category-box.box-aminoglicosideos {
+  border-top: 4px solid #f59e0b;
+}
+.antibiotic-category-box.box-aminoglicosideos h4 {
+  color: #d97706;
+}
+
+/* Tetraciclinas - Purple Accent */
+.antibiotic-category-box.box-tetraciclinas {
+  border-top: 4px solid #8b5cf6;
+}
+.antibiotic-category-box.box-tetraciclinas h4 {
+  color: #7c3aed;
+}
+
+/* Glicolipopeptídeos - Yellow/Gold Accent */
+.antibiotic-category-box.box-glicolipopeptideos {
+  border-top: 4px solid #eab308;
+}
+.antibiotic-category-box.box-glicolipopeptideos h4 {
+  color: #ca8a04;
+}
+
+/* Outros - Slate Accent */
+.antibiotic-category-box.box-outros {
+  border-top: 4px solid #64748b;
+}
+.antibiotic-category-box.box-outros h4 {
+  color: #475569;
+}
+
+/* Antifúngicos - Rose Pink Accent */
+.antibiotic-category-box.box-antifungicos {
+  border-top: 4px solid #f43f5e;
+}
+.antibiotic-category-box.box-antifungicos h4 {
+  color: #db2777;
+}
+
+/* ===============================
+   TOAST E ELEMENTOS EXTRAS
+   =============================== */
+
+/* Floating Toast Notification */
+.toast {
+  visibility: hidden;
+  min-width: 180px;
+  background-color: var(--color-success);
+  color: #ffffff;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 12px;
+  padding: 12px 24px;
+  position: fixed;
+  z-index: 1000;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease, bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
+}
+
+.toast.show {
+  visibility: visible;
+  bottom: 40px;
+  opacity: 1;
+}
+
+/* Citation / Motivational Phrase */
+.citation {
+  text-align: center;
+  font-style: italic;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 30px;
+  padding: 0 20px;
+  line-height: 1.6;
+}
+
+/* Footer style */
+.page-footer {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-color);
+  opacity: 0.8;
+}
+
+/* ===============================
+   RESPONSIVIDADE (MEDIA QUERIES)
+   =============================== */
 
 @media (max-width: 1050px) {
   .workspace-grid {
@@ -583,27 +648,36 @@
   }
 
   .draft-panel #draft {
-    min-height: 260px;
+    min-height: 250px;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: 1.8rem;
+  }
+  
   .container {
-    padding: 20px;
+    padding: 12px;
   }
-
+  
   .panel {
-    padding: 14px;
+    padding: 16px;
   }
 }
 
-.page-footer {
-  margin-top: 10px;
-  text-align: center;
-  font-size: 0.62rem;
-  font-weight: 400;
-  color: #b9b9b9;
-  line-height: 1;
-  opacity: 0.75;
-  user-select: none;
+@media (max-width: 480px) {
+  .date-options {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button {
+    width: 100%;
+  }
 }
