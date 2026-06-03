@@ -39,8 +39,8 @@ function formatCollectionDate(dateStr, timeStr) {
   if (format === "ddmmaa") dateLabel = `${dd}/${mm}/${yy}`;
   if (format === "ddmmaaaa") dateLabel = `${dd}/${mm}/${yyyy}`;
 
-  const timeLabel = String(timeStr || "").match(/^\d{2}:\d{2}$/) ? timeStr : "";
-  return showTime && timeLabel ? `${dateLabel} ${timeLabel}` : dateLabel;
+  const cleanTime = String(timeStr || "").trim();
+  return showTime && cleanTime ? `${dateLabel} ${cleanTime}` : dateLabel;
 }
 
 function toTitleCase(str) {
@@ -54,6 +54,82 @@ function toTitleCase(str) {
     })
     .replace(/\btrimethoprim\b/gi, "Trimethoprim")
     .replace(/\bhl\b/gi, "HL");
+}
+
+function cleanOrganismName(name) {
+  let s = String(name || "").trim();
+  // Remove prefixos como "Microrganismo Isolado:", "Microrganismo testado:", "Microrganismo:", "Isolado:"
+  s = s.replace(/^(?:Microrganismo\s+(?:Isolado|testado)|Microrganismo|Isolado)\s*:\s*/i, "");
+  // Remove a palavra "Complexo" / "complex" de forma isolada
+  s = s.replace(/\bComplexo\b/gi, "");
+  s = s.replace(/\bcomplex\b/gi, "");
+  // Remove caracteres residuais do início/fim
+  s = s.replace(/^[-–—\s\.\/]+|[-–—\s\.\/]+$/g, "");
+  s = s.replace(/\s+/g, " ");
+  return s.trim();
+}
+
+function detectMaterialFromText(text) {
+  const norm = normalizePlain(text);
+  
+  if (norm.includes("sangue periferico") || norm.includes("hemocultura") || norm.includes("bactec")) {
+    return "Hemocultura";
+  }
+  if (norm.includes("urina de sonda vesical de alivio") || norm.includes("urina sonda vesical alivio")) {
+    return "Urina (sonda vesical de alívio)";
+  }
+  if (norm.includes("urina de sonda vesical de demora") || norm.includes("urina sonda vesical demora") || norm.includes("urina de sonda") || norm.includes("urina sonda")) {
+    return "Urina (sonda vesical de demora)";
+  }
+  if (norm.includes("urina") || norm.includes("urocultura")) {
+    return "Urina";
+  }
+  if (norm.includes("secrecao traqueal") || norm.includes("secreção traqueal")) {
+    return "Secreção Traqueal";
+  }
+  if (norm.includes("liquor") || norm.includes("liquido cefalorraquidiano") || norm.includes("lcr")) {
+    return "Líquor";
+  }
+  if (norm.includes("ponta de cateter") || norm.includes("cateter cvc") || norm.includes("ponta do cateter")) {
+    return "Ponta de Cateter";
+  }
+  if (norm.includes("cateter permcath") || norm.includes("permcath")) {
+    return "Cateter Permcath";
+  }
+  if (norm.includes("cateter duplo lumen") || norm.includes("cateter")) {
+    return "Cateter";
+  }
+  if (norm.includes("partes moles") || norm.includes("fragmento de partes moles") || norm.includes("fragmento partes moles")) {
+    return "Partes moles";
+  }
+  if (norm.includes("fragmento") || norm.includes("tecido") || norm.includes("biopsia") || norm.includes("biópsia")) {
+    return "Fragmento de Tecido";
+  }
+  if (norm.includes("escarro")) {
+    return "Escarro";
+  }
+  if (norm.includes("liquido pleural")) {
+    return "Líquido Pleural";
+  }
+  if (norm.includes("liquido ascitico") || norm.includes("liquido ascítico")) {
+    return "Líquido Ascítico";
+  }
+  if (norm.includes("liquido sinovial")) {
+    return "Líquido Pleural";
+  }
+  if (norm.includes("abscesso") || norm.includes("secrecao de abscesso")) {
+    return "Abscesso";
+  }
+  if (norm.includes("secrecao de lesao") || norm.includes("secreção de lesão") || norm.includes("secrecao de ferida")) {
+    return "Secreção de Lesão";
+  }
+  if (norm.includes("bile")) {
+    return "Bile";
+  }
+  if (norm.includes("pus")) {
+    return "Pus";
+  }
+  return null;
 }
 
 function uniqPush(arr, value) {
@@ -324,55 +400,11 @@ if (antibioticButtons.length) setAllAntibiotics(true);
    PARSER DO NOVO LAUDO
    =============================== */
 
-function newOrg(number, name) {
-  return {
-    number,
-    name: String(name || `Organismo ${number}`).replace(/\s+/g, " ").trim(),
-    R: [],
-    S: [],
-    I: [],
-    D: [],
-    Obs: [],
-  };
-}
-
-function newExam(manualMaterial) {
-  const manual = String(manualMaterial || "").trim();
-  return {
-    collectionDate: null,
-    collectionTime: null,
-    isPartial: false,
-    material: manual || "Material não informado",
-    orgs: [],
-    resistanceNotes: [],
-  };
-}
-
-function getOrg(exam, number) {
-  const n = Number(number) || 1;
-  let org = exam.orgs.find((x) => x.number === n);
-  if (!org) {
-    org = newOrg(n, `Organismo ${n}`);
-    exam.orgs.push(org);
-    exam.orgs.sort((a, b) => a.number - b.number);
-  }
-  return org;
-}
-
-function setOrgName(exam, number, name) {
-  const org = getOrg(exam, number);
-  const clean = String(name || "").replace(/\s+/g, " ").trim();
-  if (clean) org.name = clean;
-  return org;
-}
+/* ===============================
+   PARSER REESTRUTURADO E AUXILIARES
+   =============================== */
 
 function stripLegendFromAntimicrobialSegment(segment) {
-  // Alguns PDFs CLSI colam a legenda na mesma linha do resultado:
-  //   PENICILINA >= 0,5 R I - Intermediário
-  //   RIFAMPICINA <= 0,03 S R - Resistente
-  //   SULFA + TRIMETHOPRIM <= 10 S D - (SDD) Sensível Dose Dependente
-  // Sem remover isso, o parser acabava lendo a letra da legenda como se fosse
-  // a classificação do antibiótico.
   return String(segment || "")
     .replace(/\bS\s*-\s*Sens[ií]vel[\s\S]*$/i, "")
     .replace(/\bI\s*-\s*Intermedi[aá]rio[\s\S]*$/i, "")
@@ -407,120 +439,19 @@ function classifySegment(segment, abName) {
   return [];
 }
 
-function likelyOrgForAntimicrobial(exam, abName, fallbackOrgNumber) {
-  const key = canonicalKey(abName);
-
-  const buckets = [
-    {
-      org: /enterococcus|faecium|faecalis/i,
-      abs: ["ampicilina", "estreptomicinahl", "gentamicinahl", "levofloxacina", "linezolida", "teicoplanina", "tigeciclina", "vancomicina", "daptomicina"],
-    },
-    {
-      org: /klebsiella|acinetobacter|pseudomonas|escherichia|serratia|enterobacter|proteus|baumannii|pneumoniae complex/i,
-      abs: ["amicacina", "aztreonam", "cefepime", "ceftazidima", "ceftazidimaavibactam", "ceftriaxone", "cefuroximaoral", "cefuroximaparenteral", "ciprofloxacina", "colistina", "ertapenem", "gentamicina", "meropenem", "piperacilinatazobactam", "tigeciclina", "ampicilinasulbactam"],
-    },
-    {
-      org: /candida|glabrata|nakaseomyces/i,
-      abs: ["fluconazol", "micafungina", "anidulafungina", "voriconazol"],
-    },
-    {
-      org: /staphylococcus|aureus|epidermidis|coagulase/i,
-      abs: ["clindamicina", "daptomicina", "eritromicina", "gentamicina", "levofloxacina", "linezolida", "oxacilina", "penicilina", "rifampicina", "sulfatrimethoprim", "teicoplanina", "tigeciclina", "vancomicina"],
-    },
-    {
-      org: /streptococcus|pneumoniae/i,
-      abs: ["ceftriaxone", "clindamicina", "cloranfenicol", "eritromicina", "levofloxacina", "penicilina", "sulfatrimethoprim", "tetraciclina", "vancomicina"],
-    },
-  ];
-
-  for (const bucket of buckets) {
-    if (!bucket.abs.includes(key)) continue;
-    const candidates = exam.orgs.filter((org) => bucket.org.test(org.name));
-    if (candidates.length === 1) return candidates[0].number;
-  }
-
-  return fallbackOrgNumber || (exam.orgs[0]?.number || 1);
-}
-
-
-function bucketOrgNumbersForAntimicrobial(exam, abName) {
-  const key = canonicalKey(abName);
-  const buckets = [
-    {
-      org: /enterococcus|faecium|faecalis/i,
-      abs: ["ampicilina", "estreptomicinahl", "gentamicinahl", "levofloxacina", "linezolida", "teicoplanina", "tigeciclina", "vancomicina", "daptomicina"],
-    },
-    {
-      org: /klebsiella|acinetobacter|pseudomonas|escherichia|serratia|enterobacter|proteus|baumannii|pneumoniae complex/i,
-      abs: ["amicacina", "aztreonam", "cefepime", "ceftazidima", "ceftazidimaavibactam", "ceftriaxone", "cefuroximaoral", "cefuroximaparenteral", "ciprofloxacina", "colistina", "ertapenem", "gentamicina", "meropenem", "piperacilinatazobactam", "tigeciclina", "ampicilinasulbactam"],
-    },
-    {
-      org: /candida|glabrata|nakaseomyces/i,
-      abs: ["fluconazol", "micafungina", "anidulafungina", "voriconazol"],
-    },
-    {
-      org: /staphylococcus|aureus|epidermidis|coagulase/i,
-      abs: ["clindamicina", "daptomicina", "eritromicina", "gentamicina", "levofloxacina", "linezolida", "oxacilina", "penicilina", "rifampicina", "sulfatrimethoprim", "teicoplanina", "tigeciclina", "vancomicina"],
-    },
-    {
-      org: /streptococcus|pneumoniae/i,
-      abs: ["ceftriaxone", "clindamicina", "cloranfenicol", "eritromicina", "levofloxacina", "penicilina", "sulfatrimethoprim", "tetraciclina", "vancomicina"],
-    },
-  ];
-
-  const nums = [];
-  for (const bucket of buckets) {
-    if (!bucket.abs.includes(key)) continue;
-    for (const org of exam.orgs) {
-      if (bucket.org.test(org.name)) nums.push(org.number);
-    }
-  }
-  return [...new Set(nums)];
-}
-
-function rebalanceAntimicrobialsByOrganismName(exam) {
-  if (!exam || exam.orgs.length < 2) return;
-
-  for (const cls of ["R", "S", "I", "D", "Obs"]) {
-    for (const org of exam.orgs) {
-      const keep = [];
-      for (const ab of org[cls]) {
-        const candidates = bucketOrgNumbersForAntimicrobial(exam, ab);
-        if (candidates.length === 1 && candidates[0] !== org.number) {
-          const target = getOrg(exam, candidates[0]);
-          uniqPush(target[cls], ab);
-        } else {
-          keep.push(ab);
-        }
-      }
-      org[cls] = keep;
-    }
-  }
-}
-
-function addAntimicrobialResult(exam, orgNumber, abName, cls) {
-  const org = getOrg(exam, orgNumber);
-  const label = normalizeAntimicrobialName(abName);
-  if (cls === "Obs") uniqPush(org.Obs, label);
-  else if (["R", "S", "I", "D"].includes(cls)) uniqPush(org[cls], label);
-}
-
-function applyAntimicrobialClasses(exam, abName, resultText, fallbackOrgNumber) {
+function applyAntimicrobialClassesToObj(abName, resultText, antibiogram) {
   const classes = classifySegment(resultText, abName);
   if (!classes.length) return false;
 
-  // Se houver múltiplas classificações no mesmo resultado e múltiplos microrganismos,
-  // assume ordem 1, 2, 3... Ex.: "<= 0,12 S 1 S".
-  if (classes.length > 1 && exam.orgs.length > 1) {
-    classes.forEach((cls, idx) => addAntimicrobialResult(exam, exam.orgs[idx]?.number || idx + 1, abName, cls));
-  } else {
-    const orgNumber = likelyOrgForAntimicrobial(exam, abName, fallbackOrgNumber);
-    addAntimicrobialResult(exam, orgNumber, abName, classes[classes.length - 1]);
+  const label = normalizeAntimicrobialName(abName);
+  const cls = classes[classes.length - 1];
+  if (["R", "S", "I", "D", "Obs"].includes(cls)) {
+    uniqPush(antibiogram[cls], label);
   }
   return true;
 }
 
-function parseAntimicrobialLine(line, exam, fallbackOrgNumber) {
+function parseAntimicrobialLineToObj(line, antibiogram) {
   const matches = findAntimicrobials(line);
   if (!matches.length) return false;
 
@@ -529,9 +460,8 @@ function parseAntimicrobialLine(line, exam, fallbackOrgNumber) {
     const ab = matches[i];
     const next = matches[i + 1];
     const segment = String(line).slice(ab.index, next ? next.index : undefined);
-    parsed = applyAntimicrobialClasses(exam, ab.name, segment, fallbackOrgNumber) || parsed;
+    parsed = applyAntimicrobialClassesToObj(ab.name, segment, antibiogram) || parsed;
   }
-
   return parsed;
 }
 
@@ -546,8 +476,6 @@ function getSingleAntimicrobialName(line) {
   const before = clean.slice(0, m.index).trim();
   const after = clean.slice(m.end).trim();
 
-  // Só considera "linha de antibiótico" quando a linha é basicamente apenas o nome.
-  // Ex.: "AMICACINA" ou "ESTREPTOMICINA (HL)".
   if (before || after) return null;
   return m.name;
 }
@@ -569,9 +497,8 @@ function shouldIgnoreLine(line) {
 }
 
 function prepareNewLaudoText(text) {
-  let t = String(text || "").replace(/\u00a0/g, " ");
+  let t = String(text || "").replace(/\u00a0/g, " ").replace(/['"]/g, "");
 
-  // Recria quebras de linha quando o Ctrl+C/Ctrl+V vier achatado.
   const markers = [
     "Coletado em:",
     "Liberado em:",
@@ -591,11 +518,8 @@ function prepareNewLaudoText(text) {
     t = t.replace(new RegExp(`\\s+(${escaped})`, "gi"), "\n$1");
   }
 
-  // Quebra antes de "1 - Nome do microrganismo".
   t = t.replace(/\s+(?=\d+\s*-\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-zÀ-ÿ])/g, "\n");
 
-  // Quebra antes de antimicrobianos que ficaram no fim da linha anterior.
-  // Isso ajuda quando o PDF cola várias drogas em uma única linha.
   for (const ab of ANTIMICROBIALS_SORTED) {
     const re = new RegExp(`\\s+(?=${antimicrobialRegexSource(ab)}(?:\\s|$|[<>=#*]))`, "gi");
     t = t.replace(re, "\n");
@@ -604,148 +528,612 @@ function prepareNewLaudoText(text) {
   return t;
 }
 
-function finalizeExam(exam, out) {
-  if (!exam) return;
+/* ===============================
+   EXTRACTOR E PARSERS ESPECÍFICOS
+   =============================== */
 
-  rebalanceAntimicrobialsByOrganismName(exam);
+function extractMaterialAndSite(header, manualMaterial, blockLines = []) {
+  // Se for hemocultura pelo cabeçalho
+  if (header) {
+    const upperHeader = header.toUpperCase();
+    if (upperHeader.includes("SANGUE PERIFÉRICO") || upperHeader.includes("HEMOCULTURA") || upperHeader.includes("SANGUE")) {
+      let site = null;
+      const siteMatch = upperHeader.match(/\b(MSE\s*MAO|MSE\s*MÃO|MSD\s*MAO|MSD\s*MÃO|MSE|MSD|MID|MIE|CATETER|CVC|PUNÇÃO)\b/i);
+      if (siteMatch) {
+        site = siteMatch[1].toUpperCase().replace("MAO", "MÃO");
+      }
+      return { material: "Hemocultura", site };
+    }
 
-  exam.orgs = exam.orgs.filter((org) => {
-    const hasName = org.name && !/^Organismo\s+\d+$/i.test(org.name);
-    const hasAtb = org.R.length || org.S.length || org.I.length || org.D.length || org.Obs.length;
-    return hasName || hasAtb;
-  });
+    if (upperHeader.includes("URINA") || upperHeader.includes("UROCULTURA")) {
+      let material = "Urina";
+      if (upperHeader.includes("SONDA")) {
+        if (upperHeader.includes("ALÍVIO") || upperHeader.includes("ALIVIO")) {
+          material = "Urina (sonda vesical de alívio)";
+        } else {
+          material = "Urina (sonda vesical de demora)";
+        }
+      }
+      return { material, site: null };
+    }
+  }
 
-  if (!exam.orgs.length) return;
+  // Tenta extrair material específico do título
+  let rawMaterial = "";
+  if (header) {
+    let clean = header.replace(/^(CULTURA\s+(?:AERÓBIA|PARA\s+ANAERÓBIOS|FÚNGICA|PARA\s+FUNGOS)|EXAME\s+BACTERIOSCÓPICO|BACTERIOSCÓPICO(?:\s+DE\s+HEMOCULTURA\s+(?:AEROBIA|ANAERÓBIA))?|CONCENTRAÇÃO\s+INIBITÓRIA\s+MÍNIMA|CIM)\s*-\s*/i, "");
+    
+    // Se o cabeçalho tinha apenas o prefixo genérico, clean será igual ao header.
+    // Para evitar tratar títulos genéricos como nome de material, limpamos se for igual ou muito parecido.
+    const isGenericHeader = /^(CULTURA\s+(?:AERÓBIA|PARA\s+ANAERÓBIOS|FÚNGICA|PARA\s+FUNGOS)|EXAME\s+BACTERIOSCÓPICO|BACTERIOSCÓPICO|CONCENTRAÇÃO\s+INIBITÓRIA\s+MÍNIMA|CIM)$/i.test(clean.trim());
+    if (!isGenericHeader) {
+      const parts = clean.split(/[-–—,]/).map(p => p.trim()).filter(Boolean);
+      if (parts.length > 0) {
+        rawMaterial = parts[0];
+      }
+    }
+  }
 
-  const date = formatCollectionDate(exam.collectionDate, exam.collectionTime);
-  const orgText = exam.orgs
-    .sort((a, b) => a.number - b.number)
-    .map((org) => {
-      const parts = [];
-      if (org.R.length) parts.push(`R: ${org.R.join(", ")}`);
-      if (org.S.length) parts.push(`S: ${org.S.join(", ")}`);
-      if (org.I.length) parts.push(`I: ${org.I.join(", ")}`);
-      if (org.D.length) parts.push(`D: ${org.D.join(", ")}`);
-      if (org.Obs.length) parts.push(`Obs: ${org.Obs.join(", ")}`);
-      return parts.length ? `${org.name} (${parts.join(" | ")})` : org.name;
-    })
-    .join(" + ");
+  // Se o material obtido do título for vazio ou genérico, tenta varrer as linhas do bloco
+  if (!rawMaterial && blockLines && blockLines.length > 0) {
+    for (const line of blockLines) {
+      const detected = detectMaterialFromText(line);
+      if (detected) {
+        rawMaterial = detected;
+        break;
+      }
+    }
+  }
 
-  let line = date ? `(${date}) ` : "";
-  line += `${exam.material}: ${orgText}`;
-  if (exam.resistanceNotes.length) line += ` [${exam.resistanceNotes.join("; ")}]`;
-  if (exam.isPartial) line += " — parcial";
-  out.push(line);
+  // Se ainda assim não encontrar nada, tenta varrer o header com o detector inteligente
+  if (!rawMaterial && header) {
+    const detected = detectMaterialFromText(header);
+    if (detected) {
+      rawMaterial = detected;
+    }
+  }
+
+  // Se encontrar, higieniza nomes comuns
+  let finalMaterial = "";
+  if (rawMaterial) {
+    const upperRaw = rawMaterial.toUpperCase();
+    if (upperRaw.includes("SECREÇÃO TRAQUEAL") || upperRaw.includes("SECRECAO TRAQUEAL")) {
+      finalMaterial = "Secreção Traqueal";
+    } else if (upperRaw.includes("LÍQUOR") || upperRaw.includes("LIQUOR")) {
+      finalMaterial = "Líquor";
+    } else if (upperRaw.includes("URINA")) {
+      if (upperRaw.includes("ALÍVIO") || upperRaw.includes("ALIVIO")) {
+        finalMaterial = "Urina (sonda vesical de alívio)";
+      } else if (upperRaw.includes("SONDA")) {
+        finalMaterial = "Urina (sonda vesical de demora)";
+      } else {
+        finalMaterial = "Urina";
+      }
+    } else {
+      finalMaterial = toTitleCase(rawMaterial);
+    }
+  }
+
+  return { material: finalMaterial || manualMaterial || "Material não informado", site: null };
 }
 
-function parseCultures(text, manualMaterial) {
-  const lines = prepareNewLaudoText(text).split(/\r?\n/);
-  const out = [];
-  let exam = null;
-  let lastOrgNumber = null;
-  let pendingAntimicrobial = null; // quando vem ANTIBIÓTICO em uma linha e resultado na seguinte
+function determineSusceptibility(atbName, micVal, refLine) {
+  if (micVal === null || micVal === undefined) return "Obs";
 
-  function ensureExam() {
-    if (!exam) exam = newExam(manualMaterial);
-    return exam;
+  const normText = normalizePlain(refLine);
+  const normAtb = normalizePlain(atbName);
+
+  const idx = normText.indexOf(normAtb);
+  if (idx === -1) {
+    return "S"; // Fallback padrão
   }
 
-  function finishExam() {
-    finalizeExam(exam, out);
-    exam = null;
-    lastOrgNumber = null;
-    pendingAntimicrobial = null;
+  let segment = normText.slice(idx);
+  const nextRef = segment.indexOf("valor de referencia", 10);
+  if (nextRef !== -1) {
+    segment = segment.slice(0, nextRef);
   }
 
-  for (const rawLine of lines) {
-    const line = String(rawLine || "").trim();
-    if (!line) continue;
+  const sMatches = [...segment.matchAll(/s\s*<=\s*([\d,.]+)/g)].map(m => parseFloat(m[1].replace(",", ".")));
+  const rMatches = [...segment.matchAll(/r\s*>=\s*([\d,.]+)/g)].map(m => parseFloat(m[1].replace(",", ".")));
 
-    const mCollection = line.match(/^Coletado em:\s*(\d{2}\/\d{2}\/\d{4})(?:\s+(\d{2}:\d{2}))?/i);
-    if (mCollection) {
-      if (exam && (exam.collectionDate || exam.orgs.length)) finishExam();
-      const current = ensureExam();
-      current.collectionDate = mCollection[1];
-      current.collectionTime = mCollection[2] || null;
-      continue;
-    }
+  if (!sMatches.length && !rMatches.length) {
+    return "S"; // Fallback
+  }
 
-    // Heurística de material: quando o laudo foi semeado em meios Bactec,
-    // tratamos como hemocultura. Isso funciona mesmo quando o campo do
-    // material veio como imagem no PDF e não foi copiado no Ctrl+C/Ctrl+V.
-    if (/(^|\s)bactec(\s|$|[-])/i.test(line)) {
-      const current = ensureExam();
-      current.material = "Hemocultura";
-    }
+  const minS = Math.min(...sMatches);
+  const maxR = Math.max(...rMatches);
 
-    if (/^Resultado\s+PARCIAL/i.test(line)) {
-      ensureExam().isPartial = true;
-      continue;
-    }
+  if (sMatches.length && micVal <= minS) {
+    return "S";
+  }
+  if (rMatches.length && micVal >= maxR) {
+    return "R";
+  }
+  if (segment.includes("sae") || segment.includes("intermediario")) {
+    return "I";
+  }
+  return "I";
+}
 
-    if (shouldIgnoreLine(line)) continue;
+function parseCultureBlock(block, manualMaterial) {
+  const { material, site } = extractMaterialAndSite(block.titulo, manualMaterial, block.linhas);
+  let isPositive = false;
+  let isNegative = false;
+  let isIdenticalLink = false;
+  const organisms = [];
+  const resistanceNotes = [];
+  const antibiogram = { R: [], S: [], I: [], D: [], Obs: [] };
 
-    const kpc = line.match(/\b(KPC|NDM|VIM|IMP|OXA[- ]?48)\s*:\s*POSITIVO\b/i);
-    if (kpc && exam) {
-      uniqPush(exam.resistanceNotes, `${kpc[1].toUpperCase().replace(/\s+/g, "")}: positivo`);
-      continue;
-    }
+  const isBacterioscopico = block.titulo && block.titulo.toUpperCase().includes("BACTERIOSCÓPICO");
 
-    // Padrão real do Ctrl+C/Ctrl+V do PDF:
-    //   AMICACINA
-    //   4 S
-    // Nesse caso guardamos o antibiótico e aplicamos o resultado da próxima linha.
-    if (exam && pendingAntimicrobial && looksLikeResultOnlyLine(line)) {
-      applyAntimicrobialClasses(exam, pendingAntimicrobial, line, lastOrgNumber);
-      pendingAntimicrobial = null;
-      continue;
-    }
-
-    // Se apareceu uma linha só com nome de antimicrobiano, aguarda a linha seguinte.
-    const singleAb = getSingleAntimicrobialName(line);
-    if (exam && singleAb) {
-      pendingAntimicrobial = singleAb;
-      continue;
-    }
-
-    // Linha de microrganismo: pode vir sozinha ou junto com o primeiro antimicrobiano.
-    const mOrg = line.match(/^(\d+)\s*-\s*(.+)$/);
-    if (mOrg) {
-      const current = ensureExam();
-      const n = parseInt(mOrg[1], 10);
-      if (!n || n < 1 || n > 20) continue;
-      let rest = mOrg[2].trim();
-      if (/^Cl[ií]nica:/i.test(rest)) continue;
-      const firstAb = findAntimicrobials(rest)[0];
-
-      if (firstAb) {
-        const orgName = rest.slice(0, firstAb.index).trim();
-        setOrgName(current, n, orgName);
-        lastOrgNumber = n;
-        pendingAntimicrobial = null;
-        parseAntimicrobialLine(rest.slice(firstAb.index), current, n);
-      } else {
-        setOrgName(current, n, rest);
-        lastOrgNumber = n;
+  for (const line of block.linhas) {
+    const mResult = line.match(/^(CULTURA\s+(?:AERÓBIA|PARA\s+ANAERÓBIOS))\s+(Positiva|Negativa)/i);
+    if (mResult) {
+      const res = mResult[2].toLowerCase();
+      if (res === "positiva") {
+        isPositive = true;
+      } else if (res === "negativa") {
+        isNegative = true;
       }
       continue;
     }
 
-    // Linhas de cabeçalho não devem ser interpretadas como resultado.
-    if (/^(ANTIBIOGRAMA|Antibiogramas|Microrganismos|Antimicrobiano|Legenda|S - Sensível|I - Intermediário|R - Resistente|D -|P - Positivo|N - Negativo)/i.test(line)) {
-      // Alguns PDFs colam um antimicrobiano depois de "Legenda".
-      if (/^Legenda/i.test(line) && exam) parseAntimicrobialLine(line.replace(/^Legenda\s*/i, ""), exam, lastOrgNumber);
+    if (line === "Negativa" || line === "Ausência de Microrganismos") {
+      isNegative = true;
       continue;
     }
 
-    if (exam && parseAntimicrobialLine(line, exam, lastOrgNumber)) {
-      pendingAntimicrobial = null;
+    // Se for bacterioscópico, tenta achar achados de coloração de Gram de forma estruturada
+    if (isBacterioscopico) {
+      const parts = line.split('\t').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2 && /BACTERIOSCÓPICO/i.test(parts[0])) {
+        const finding = parts[1];
+        if (finding && !/Coloração/i.test(finding) && !/Ausência/i.test(finding)) {
+          organisms.push(cleanOrganismName(finding));
+          isPositive = true;
+        }
+      }
+    }
+
+    // Tenta identificar se a linha contém um microrganismo
+    // 1. Linhas com índice numérico limitado a 1 ou 2 dígitos (evita conflitos com números de registro/pedido)
+    const mOrg = line.match(/^([1-9]\d?)\s*-\s*(.+)$/);
+    if (mOrg) {
+      isPositive = true;
+      let orgName = mOrg[2].trim();
+      
+      const matches = findAntimicrobials(orgName);
+      if (matches.length > 0) {
+        orgName = orgName.slice(0, matches[0].index).trim();
+      }
+      
+      orgName = cleanOrganismName(orgName);
+      
+      if (orgName && !organisms.includes(orgName) && !/^Cl[ií]nica:/i.test(orgName)) {
+        organisms.push(orgName);
+      }
+      // Não fazemos "continue" para permitir que o antibiótico fundido na mesma linha seja parseado!
+    }
+
+    // 2. Linhas sem índice numérico, mas que contêm termos biológicos conhecidos
+    const PATHOGENS_RX = /\b(Acinetobacter|Streptococcus|Escherichia|Pseudomonas|Staphylococcus|Klebsiella|Candida|Enterococcus|Nakaseomyces|Enterobacter|Serratia|Proteus|Flora normal)\b/i;
+    if (!mOrg && PATHOGENS_RX.test(line)) {
+      let orgName = line.trim();
+      const matches = findAntimicrobials(orgName);
+      if (matches.length > 0) {
+        orgName = orgName.slice(0, matches[0].index).trim();
+      }
+      orgName = orgName.replace(/^[-–—\s]+/, "").trim();
+      
+      orgName = cleanOrganismName(orgName);
+      
+      if (orgName && !organisms.includes(orgName) && !/^(CULTURA|EXAME|BACTERIOSCÓPICO|CONCENTRAÇÃO|CIM|VALOR|MÉTODO|LEGENDA|M\.I\.C)/i.test(orgName)) {
+        isPositive = true;
+        organisms.push(orgName);
+      }
+    }
+
+    if (/identificacao\s+e\s+perfil\s+de\s+sensibilidade\s+identicos/i.test(normalizePlain(line))) {
+      isPositive = true;
+      isIdenticalLink = true;
       continue;
+    }
+
+    const kpc = line.match(/\b(KPC|NDM|VIM|IMP|OXA[- ]?48)\s*:\s*POSITIVO\b/i);
+    if (kpc) {
+      resistanceNotes.push(`${kpc[1].toUpperCase().replace(/\s+/g, "")}: positivo`);
     }
   }
 
-  finishExam();
-  return out.join("\n");
+  // Tentar extrair antibiograma padrão das linhas se for positivo e não for bacterioscópico
+  if (isPositive && !isBacterioscopico) {
+    let pendingAntimicrobial = null;
+    for (const line of block.linhas) {
+      if (pendingAntimicrobial && looksLikeResultOnlyLine(line)) {
+        applyAntimicrobialClassesToObj(pendingAntimicrobial, line, antibiogram);
+        pendingAntimicrobial = null;
+        continue;
+      }
+
+      const singleAb = getSingleAntimicrobialName(line);
+      if (singleAb) {
+        pendingAntimicrobial = singleAb;
+        continue;
+      }
+
+      if (parseAntimicrobialLineToObj(line, antibiogram)) {
+        pendingAntimicrobial = null;
+      }
+    }
+  }
+
+  if (isPositive && organisms.length === 0 && isIdenticalLink) {
+    organisms.push("Identificação idêntica");
+  }
+
+  // Varredura da seção de observações/notas para capturar drogas adicionais (ex: Polimixina B)
+  let currentObsCategory = null;
+  for (let i = 0; i < block.linhas.length; i++) {
+    const line = block.linhas[i];
+    const norm = normalizePlain(line);
+
+    if (norm === "sensivel" || norm === "sensivel dose padrao") {
+      currentObsCategory = "S";
+      continue;
+    } else if (norm === "resistente") {
+      currentObsCategory = "R";
+      continue;
+    } else if (norm === "intermediario") {
+      currentObsCategory = "I";
+      continue;
+    } else if (norm === "sensivel dose dependente" || norm === "sdd") {
+      currentObsCategory = "D";
+      continue;
+    }
+
+    if (currentObsCategory) {
+      const matches = findAntimicrobials(line);
+      if (matches.length > 0) {
+        const hasValueIndicator = /valor|mic|m\.i\.c\.|[\d,.]+\s*(?:µg|ug|mg)/i.test(line);
+        if (hasValueIndicator) {
+          for (const m of matches) {
+            const label = normalizeAntimicrobialName(m.name);
+            uniqPush(antibiogram[currentObsCategory], label);
+          }
+        }
+      }
+      
+      if (!line || /^(Notas:|Obs:|Observações:)/i.test(line)) {
+        currentObsCategory = null;
+      }
+    }
+  }
+
+  return {
+    pedido: block.pedido,
+    data: block.coletadoData,
+    hora: block.coletadoHora,
+    material,
+    site,
+    isPositive,
+    isNegative: isNegative && !isPositive,
+    isIdenticalLink,
+    isBacterioscopico,
+    organisms,
+    resistanceNotes,
+    antibiogram
+  };
+}
+
+function parseCimBlock(block, manualMaterial) {
+  const { material, site } = extractMaterialAndSite(block.titulo, manualMaterial, block.linhas);
+  let organism = null;
+  const antibiogram = { R: [], S: [], I: [], D: [], Obs: [] };
+
+  let currentAtbName = null;
+  let refLine = "";
+
+  for (const line of block.linhas) {
+    const mOrgTest = line.match(/Microrganismo\s+testado\s*:\s*([^\t\n;]+)/i);
+    if (mOrgTest) {
+      organism = cleanOrganismName(mOrgTest[1].trim());
+      continue;
+    }
+
+    if (line.startsWith("Valor de referência")) {
+      refLine += " " + line;
+    }
+  }
+
+  for (const line of block.linhas) {
+    const mAtb = line.match(/Antibiótico\s+testado\s*:\s*(.+)/i);
+    if (mAtb) {
+      currentAtbName = mAtb[1].trim();
+      continue;
+    }
+
+    const mMic = line.match(/M\.I\.C\.\s*:\s*([\d,.]+)/i);
+    if (mMic && currentAtbName) {
+      const micVal = parseFloat(mMic[1].replace(",", "."));
+      const cls = determineSusceptibility(currentAtbName, micVal, refLine);
+      const label = normalizeAntimicrobialName(currentAtbName);
+
+      if (["R", "S", "I", "D", "Obs"].includes(cls)) {
+        uniqPush(antibiogram[cls], label);
+      }
+      currentAtbName = null;
+    }
+  }
+
+  return {
+    pedido: block.pedido,
+    data: block.coletadoData,
+    hora: block.coletadoHora,
+    material,
+    site,
+    isCim: true,
+    organism,
+    antibiogram
+  };
+}
+
+/* ===============================
+   SEGMENTADOR E CONSOLIDADOR
+   =============================== */
+
+function segmentIntoBlocks(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const blocks = [];
+  let currentBlock = null;
+
+  for (const line of lines) {
+    const isTimestamp = /^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2}$/.test(line);
+    const mPedido = line.match(/^Pedido\s*:\s*(\d+)$/i);
+
+    let startNewBlock = false;
+    if (isTimestamp) {
+      if (currentBlock && (currentBlock.titulo || currentBlock.linhas.length)) {
+        startNewBlock = true;
+      }
+    } else if (mPedido) {
+      if (currentBlock && currentBlock.pedido) {
+        startNewBlock = true;
+      }
+    }
+
+    if (startNewBlock) {
+      blocks.push(currentBlock);
+      currentBlock = null;
+    }
+
+    if (!currentBlock) {
+      currentBlock = {
+        pedido: mPedido ? mPedido[1] : null,
+        dataHora: isTimestamp ? line : null,
+        coletadoData: null,
+        coletadoHora: null,
+        titulo: null,
+        linhas: []
+      };
+      continue;
+    }
+
+    const mColetado = line.match(/^Coletado\s+em:\s*(\d{2}\/\d{2}\/\d{4})(?:\s+(\d{2}:\d{2}))?/i);
+    if (mColetado) {
+      currentBlock.coletadoData = mColetado[1];
+      currentBlock.coletadoHora = mColetado[2] || null;
+      continue;
+    }
+
+    if (mPedido && !currentBlock.pedido) {
+      currentBlock.pedido = mPedido[1];
+      continue;
+    }
+
+    if (line === "DIVISÃO DE LABORATÓRIO CENTRAL HCFMUSP") {
+      continue;
+    }
+
+    if (!currentBlock.titulo && /^(CULTURA|CONCENTRAÇÃO|BACTERIOSCÓPICO|EXAME|CIM)\b/i.test(line)) {
+      currentBlock.titulo = line;
+      continue;
+    }
+
+    currentBlock.linhas.push(line);
+  }
+
+  if (currentBlock && (currentBlock.titulo || currentBlock.linhas.length)) {
+    blocks.push(currentBlock);
+  }
+
+  return blocks;
+}
+
+function consolidateExams(parsedExams) {
+  const groupedByDate = {};
+
+  for (const exam of parsedExams) {
+    const date = exam.data || "Sem data";
+    if (!groupedByDate[date]) {
+      groupedByDate[date] = [];
+    }
+    groupedByDate[date].push(exam);
+  }
+
+  const outputLines = [];
+  const dates = Object.keys(groupedByDate);
+
+  for (const date of dates) {
+    const dateExams = groupedByDate[date];
+
+    const hemoculturas = dateExams.filter(e => e.material === "Hemocultura");
+    const outros = dateExams.filter(e => e.material !== "Hemocultura");
+
+    // 1. Hemoculturas
+    if (hemoculturas.length > 0) {
+      const cultureBottles = hemoculturas.filter(e => !e.isCim && !e.isBacterioscopico);
+      const cimTests = hemoculturas.filter(e => e.isCim);
+
+      const totalBottles = cultureBottles.length;
+      const positiveBottles = cultureBottles.filter(b => b.isPositive).length;
+
+      const sites = [...new Set(cultureBottles.map(b => b.site).filter(Boolean))].sort();
+      const sitesLabel = sites.length > 0 ? ` (${sites.join("/")})` : "";
+
+      const times = [...new Set(cultureBottles.map(b => b.hora).filter(Boolean))].sort();
+      const timeLabel = times.length > 0 ? times.join("/") : null;
+
+      if (positiveBottles > 0) {
+        let organisms = [];
+        for (const b of cultureBottles) {
+          if (b.isPositive) {
+            organisms.push(...b.organisms);
+          }
+        }
+        for (const c of cimTests) {
+          if (c.organism) {
+            organisms.push(c.organism);
+          }
+        }
+        organisms = [...new Set(organisms.filter(o => o && o !== "Identificação idêntica"))];
+        if (organisms.length === 0) {
+          organisms = ["Cultura Positiva"];
+        }
+
+        const consolidatedAtb = { R: [], S: [], I: [], D: [], Obs: [] };
+        const mergeAtb = (atb) => {
+          if (!atb) return;
+          for (const cls of ["R", "S", "I", "D", "Obs"]) {
+            if (atb[cls]) {
+              for (const drug of atb[cls]) {
+                uniqPush(consolidatedAtb[cls], drug);
+              }
+            }
+          }
+        };
+
+        for (const b of cultureBottles) mergeAtb(b.antibiogram);
+        for (const c of cimTests) mergeAtb(c.antibiogram);
+
+        const atbParts = [];
+        if (consolidatedAtb.R.length) atbParts.push(`R: ${consolidatedAtb.R.join(", ")}`);
+        if (consolidatedAtb.S.length) atbParts.push(`S: ${consolidatedAtb.S.join(", ")}`);
+        if (consolidatedAtb.I.length) atbParts.push(`I: ${consolidatedAtb.I.join(", ")}`);
+        if (consolidatedAtb.D.length) atbParts.push(`D: ${consolidatedAtb.D.join(", ")}`);
+        if (consolidatedAtb.Obs.length) atbParts.push(`Obs: ${consolidatedAtb.Obs.join(", ")}`);
+
+        const atbLabel = atbParts.length > 0 ? ` (${atbParts.join(" | ")})` : "";
+
+        const resistanceNotes = [];
+        for (const b of cultureBottles) {
+          resistanceNotes.push(...b.resistanceNotes);
+        }
+        const resistanceLabel = resistanceNotes.length > 0 ? ` [${[...new Set(resistanceNotes)].join("; ")}]` : "";
+
+        const dateFormatted = formatCollectionDate(date, timeLabel);
+        const dateLabel = dateFormatted ? `(${dateFormatted}) ` : "";
+
+        outputLines.push(`${dateLabel}Hemocultura${sitesLabel}: ${organisms.join(" + ")} (${positiveBottles}/${totalBottles} frascos positivos)${atbLabel}${resistanceLabel}`);
+      } else if (totalBottles > 0) {
+        const dateFormatted = formatCollectionDate(date, timeLabel);
+        const dateLabel = dateFormatted ? `(${dateFormatted}) ` : "";
+        outputLines.push(`${dateLabel}Hemocultura${sitesLabel}: Negativa`);
+      }
+    }
+
+    // 2. Outros materiais
+    const outrosAgrupados = {};
+    for (const e of outros) {
+      if (!outrosAgrupados[e.material]) {
+        outrosAgrupados[e.material] = [];
+      }
+      outrosAgrupados[e.material].push(e);
+    }
+
+    for (const mat of Object.keys(outrosAgrupados)) {
+      const matExams = outrosAgrupados[mat];
+      
+      const cultureExams = matExams.filter(e => !e.isBacterioscopico);
+      const bacterioscopicos = matExams.filter(e => e.isBacterioscopico);
+
+      const times = [...new Set(matExams.map(e => e.hora).filter(Boolean))].sort();
+      const timeLabel = times.length > 0 ? times.join("/") : null;
+      const dateFormatted = formatCollectionDate(date, timeLabel);
+      const dateLabel = dateFormatted ? `(${dateFormatted}) ` : "";
+
+      if (cultureExams.length > 0) {
+        const positiveExams = cultureExams.filter(e => e.isPositive);
+        if (positiveExams.length > 0) {
+          let organisms = [];
+          for (const e of positiveExams) {
+            organisms.push(...e.organisms);
+          }
+          organisms = [...new Set(organisms)];
+
+          const consolidatedAtb = { R: [], S: [], I: [], D: [], Obs: [] };
+          const mergeAtb = (atb) => {
+            if (!atb) return;
+            for (const cls of ["R", "S", "I", "D", "Obs"]) {
+              if (atb[cls]) {
+                for (const drug of atb[cls]) {
+                  uniqPush(consolidatedAtb[cls], drug);
+                }
+              }
+            }
+          };
+
+          for (const e of cultureExams) mergeAtb(e.antibiogram);
+
+          const atbParts = [];
+          if (consolidatedAtb.R.length) atbParts.push(`R: ${consolidatedAtb.R.join(", ")}`);
+          if (consolidatedAtb.S.length) atbParts.push(`S: ${consolidatedAtb.S.join(", ")}`);
+          if (consolidatedAtb.I.length) atbParts.push(`I: ${consolidatedAtb.I.join(", ")}`);
+          if (consolidatedAtb.D.length) atbParts.push(`D: ${consolidatedAtb.D.join(", ")}`);
+          if (consolidatedAtb.Obs.length) atbParts.push(`Obs: ${consolidatedAtb.Obs.join(", ")}`);
+
+          const atbLabel = atbParts.length > 0 ? ` (${atbParts.join(" | ")})` : "";
+
+          outputLines.push(`${dateLabel}${mat}: ${organisms.join(" + ")}${atbLabel}`);
+        } else {
+          outputLines.push(`${dateLabel}${mat}: Negativa`);
+        }
+      } else if (bacterioscopicos.length > 0) {
+        const positiveBacs = bacterioscopicos.filter(e => e.isPositive);
+        if (positiveBacs.length > 0) {
+          let findings = [];
+          for (const e of positiveBacs) {
+            findings.push(...e.organisms);
+          }
+          findings = [...new Set(findings)];
+          outputLines.push(`${dateLabel}${mat} (Bacterioscópico): ${findings.join(", ")}`);
+        } else {
+          outputLines.push(`${dateLabel}${mat} (Bacterioscópico): Ausência de Microrganismos`);
+        }
+      }
+    }
+  }
+
+  return outputLines.join("\n");
+}
+
+function parseCultures(text, manualMaterial) {
+  const blocks = segmentIntoBlocks(text);
+  const parsedExams = [];
+
+  for (const block of blocks) {
+    if (!block.coletadoData) continue; // Descarta blocos de lixo (sem data de coleta)
+    if (shouldIgnoreLine(block.titulo)) continue;
+
+    const isCim = block.titulo && /CIM|CONCENTRAÇÃO INIBITÓRIA MÍNIMA/i.test(block.titulo);
+    if (isCim) {
+      parsedExams.push(parseCimBlock(block, manualMaterial));
+    } else {
+      parsedExams.push(parseCultureBlock(block, manualMaterial));
+    }
+  }
+
+  return consolidateExams(parsedExams);
 }
 
 // Ajuda para testar no console do navegador, se necessário.
