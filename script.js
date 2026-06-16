@@ -1058,7 +1058,11 @@ function consolidateOrganisms(allOrganisms) {
     }
   }
   
-  const result = Object.values(grouped);
+  let result = Object.values(grouped);
+  const hasActualOrganism = result.some(org => canonicalKey(org.name) !== canonicalKey("Identificação idêntica"));
+  if (hasActualOrganism) {
+    result = result.filter(org => canonicalKey(org.name) !== canonicalKey("Identificação idêntica"));
+  }
   for (const org of result) {
     resolveAntibiogramConflicts(org.antibiogram);
   }
