@@ -5,38 +5,98 @@
 
 :root {
   /* Font Families */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   --font-title: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Color Palette */
-  --bg-page: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  /* Color Palette - Medical & Relaxing Style (from exames-hc) */
+  --bg-page: #f4f7fa;
   --bg-panel: #ffffff;
-  --text-main: #0f172a;       /* Slate 900 */
-  --text-medium: #334155;     /* Slate 700 */
-  --text-muted: #64748b;      /* Slate 500 */
   --border-color: #e2e8f0;    /* Slate 200 */
   
+  --text-main: #1e293b;       /* Slate 800 */
+  --text-medium: #334155;     /* Slate 700 */
+  --text-muted: #64748b;      /* Slate 500 */
+  
   /* Primary Accent & Brand */
-  --accent-blue: #3b82f6;     /* Blue 500 */
-  --accent-indigo: #4f46e5;   /* Indigo 600 */
-  --accent-gradient: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-indigo) 100%);
-  --accent-light: rgba(59, 130, 246, 0.1);
-  --accent-hover: #2563eb;
+  --accent-blue: #1066cc;     /* Clinical Blue */
+  --accent-indigo: #0ea5e9;   /* Sky Blue */
+  --accent-gradient: linear-gradient(135deg, var(--text-main), var(--accent-blue));
+  --accent-light: rgba(16, 102, 204, 0.15);
+  --accent-hover: #0d54a8;
   
   /* Actions and Highlights */
   --color-success: #10b981;   /* Emerald 500 */
   --color-success-dark: #059669;
   --color-danger: #ef4444;    /* Red 500 */
   
+  /* Buttons & Segmented */
+  --btn-sec-bg: #e2e8f0;
+  --btn-sec-text: #334155;
+  --btn-sec-hover: #cbd5e1;
+
+  /* Pills (Checkboxes) */
+  --pill-bg: #ffffff;
+  --pill-border: #cbd5e1;
+  --pill-text: #475569;
+  --pill-checked-bg: #e0f2fe;
+  --pill-checked-border: #0ea5e9;
+  --pill-checked-text: #0369a1;
+
   /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.04), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.12);
+  --shadow-glow: 0 0 0 4px var(--accent-light);
+
+  /* Border Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
 
   /* Transition Curve */
   --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-theme: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark-theme {
+  --bg-page: #0b111e;
+  --bg-panel: #151d2f;
+  --border-color: #222f46;
+  
+  --text-main: #f1f5f9;       /* Slate 100 */
+  --text-medium: #cbd5e1;     /* Slate 300 */
+  --text-muted: #94a3b8;      /* Slate 400 */
+  
+  --accent-blue: #38bdf8;     /* Soothing Light Blue */
+  --accent-indigo: #0ea5e9;
+  --accent-gradient: linear-gradient(135deg, #ffffff, var(--accent-blue));
+  --accent-light: rgba(56, 189, 248, 0.2);
+  --accent-hover: #7dd3fc;
+  
+  --color-success: #34d399;
+  --color-success-dark: #059669;
+  --color-danger: #f87171;
+
+  /* Buttons & Segmented */
+  --btn-sec-bg: #1e293b;
+  --btn-sec-text: #cbd5e1;
+  --btn-sec-hover: #334155;
+  
+  /* Pills (Checkboxes) */
+  --pill-bg: #1e293b;
+  --pill-border: #334155;
+  --pill-text: #94a3b8;
+  --pill-checked-bg: #075985;
+  --pill-checked-border: #38bdf8;
+  --pill-checked-text: #e0f2fe;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.45);
 }
 
 /* ===============================
@@ -54,17 +114,23 @@ body {
   background: var(--bg-page);
   color: var(--text-main);
   line-height: 1.5;
-  padding: 24px 16px;
+  padding: 12px 16px;
   min-height: 100vh;
+  transition: var(--transition-theme);
 }
 
 .container {
-  max-width: 1440px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 24px;
+  background-color: var(--bg-panel);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  transition: var(--transition-theme);
 }
 
 /* ===============================
@@ -72,29 +138,74 @@ body {
    =============================== */
 
 .page-header {
-  text-align: center;
-  margin-bottom: 8px;
-  padding: 16px 0;
+  text-align: left;
+  margin-bottom: 4px;
+  padding: 4px 0;
+}
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  gap: 16px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .page-header h1 {
   font-family: var(--font-title);
-  font-size: 2.2rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: var(--text-main);
-  letter-spacing: -0.025em;
-  margin-bottom: 6px;
+  letter-spacing: -0.02em;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.page-header .small {
-  font-size: 0.95rem;
+body.dark-theme .page-header h1 {
+  background: linear-gradient(135deg, #ffffff, var(--accent-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.btn-theme {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-panel);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.btn-theme:hover {
+  background-color: var(--btn-sec-bg);
+  transform: scale(1.05) rotate(12deg);
+}
+
+.theme-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.subtitle {
+  font-size: 0.9rem;
   color: var(--text-muted);
-  max-width: 600px;
-  margin: 0 auto;
-  font-weight: 400;
+  margin-bottom: 8px;
+  max-width: 800px;
 }
 
 /* ===============================
@@ -104,25 +215,20 @@ body {
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
-  gap: 24px;
+  gap: 16px;
   align-items: stretch;
 }
 
 .panel {
   background: var(--bg-panel);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  transition: var(--transition-smooth);
-}
-
-.panel:hover {
-  box-shadow: var(--shadow-xl);
-  border-color: rgba(203, 213, 225, 0.8);
+  gap: 12px;
+  transition: var(--transition-theme);
 }
 
 .panel-header {
@@ -130,13 +236,13 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 14px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .panel h2 {
   font-family: var(--font-title);
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.01em;
@@ -172,40 +278,41 @@ label {
 .text-input,
 .select-input {
   width: 100%;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   font-family: var(--font-sans);
-  font-size: 0.92rem;
-  background: #f8fafc;
+  font-size: 0.88rem;
+  background-color: var(--bg-page);
   color: var(--text-main);
-  transition: var(--transition-smooth);
+  transition: var(--transition-theme);
 }
 
 .text-input:focus,
 .select-input:focus {
   outline: none;
   border-color: var(--accent-blue);
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background-color: var(--bg-panel);
+  box-shadow: var(--shadow-glow);
 }
 
 /* Date Options Panel */
 .date-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-end;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: #f8fafc;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-page);
+  transition: var(--transition-theme);
 }
 
 .date-option-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   flex: 1;
   min-width: 150px;
 }
@@ -213,9 +320,9 @@ label {
 .checkbox-option {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 42px;
-  font-size: 0.9rem;
+  gap: 8px;
+  min-height: 34px;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   color: var(--text-medium);
@@ -223,9 +330,9 @@ label {
 }
 
 .checkbox-option input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
   cursor: pointer;
   accent-color: var(--accent-blue);
@@ -234,33 +341,33 @@ label {
 /* Textareas */
 textarea {
   width: 100%;
-  padding: 14px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   resize: vertical;
   font-family: var(--font-mono);
-  font-size: 0.88rem;
-  background: #f8fafc;
-  color: #1e293b;
-  line-height: 1.6;
-  transition: var(--transition-smooth);
+  font-size: 0.82rem;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.5;
+  transition: var(--transition-theme);
+  outline: none;
 }
 
 textarea:focus {
-  outline: none;
   border-color: var(--accent-blue);
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background-color: var(--bg-panel);
+  box-shadow: var(--shadow-glow);
 }
 
 .input-row textarea {
-  min-height: 180px;
+  min-height: 140px;
 }
 
 .output-row textarea {
-  min-height: 130px;
-  background: #f8fafc;
-  color: #0f172a;
+  min-height: 100px;
+  background-color: var(--bg-page);
+  color: var(--text-main);
 }
 
 .draft-panel .draft-row {
@@ -271,8 +378,9 @@ textarea:focus {
 
 .draft-panel #draft {
   flex: 1;
-  min-height: 410px;
-  background: #fcfcfd;
+  min-height: 330px;
+  background-color: var(--bg-page);
+  color: var(--text-main);
 }
 
 /* ===============================
@@ -290,84 +398,99 @@ textarea:focus {
 /* Botões Genéricos */
 button {
   font-family: var(--font-sans);
-  font-size: 0.88rem;
-  font-weight: 600;
-  padding: 10px 18px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   border: none;
+  padding: 8px 16px;
   cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: var(--transition-smooth);
+  gap: 6px;
+  transition: var(--transition-theme);
+  box-shadow: var(--shadow-sm);
+  outline: none;
 }
 
 button:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 /* Primary Button (Sucesso / Adicionar) */
 button.primary-btn {
-  background: var(--color-success);
+  background-color: var(--color-success);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 button.primary-btn:hover {
-  background: var(--color-success-dark);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+  background-color: var(--color-success-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.25);
+}
+
+body.dark-theme button.primary-btn {
+  color: #0b111e;
+}
+
+body.dark-theme button.primary-btn:hover {
+  box-shadow: 0 3px 8px rgba(52, 211, 153, 0.35);
 }
 
 /* Copy Button (Azul Primário) */
 button.copy-button {
   background: var(--accent-gradient);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 button.copy-button:hover {
   background: var(--accent-hover);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(16, 102, 204, 0.25);
+}
+
+body.dark-theme button.copy-button {
+  color: #0b111e;
+}
+
+body.dark-theme button.copy-button:hover {
+  box-shadow: 0 3px 8px rgba(56, 189, 248, 0.35);
 }
 
 /* Secondary Button (Neutral / Bordered) */
 button.secondary-btn {
-  background: #ffffff;
-  color: var(--text-medium);
+  background-color: var(--btn-sec-bg);
+  color: var(--btn-sec-text);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
 }
 
 button.secondary-btn:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: var(--text-main);
+  background-color: var(--btn-sec-hover);
+  transform: translateY(-1px);
 }
 
 /* Reset / Control buttons */
 .antibiotic-actions {
   display: flex;
-  gap: 10px;
-  margin: 12px 0 16px;
+  gap: 8px;
+  margin: 8px 0 12px;
 }
 
 .antibiotic-control {
-  font-size: 0.82rem;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: #ffffff;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background-color: var(--btn-sec-bg);
   border: 1px solid var(--border-color);
-  color: var(--text-medium);
+  color: var(--btn-sec-text);
   box-shadow: var(--shadow-sm);
   font-weight: 600;
-  transition: var(--transition-smooth);
+  transition: var(--transition-theme);
 }
 
 .antibiotic-control:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: var(--text-main);
+  background-color: var(--btn-sec-hover);
+  transform: translateY(-1px);
 }
 
 /* ===============================
@@ -380,49 +503,44 @@ button.secondary-btn:hover {
 
 .antibiotics-panel > h3 {
   font-family: var(--font-title);
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-main);
 }
 
 .antibiotic-categories {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
   align-items: stretch; /* Keep uniform row heights */
 }
 
 /* Clean, modern and discrete category card */
 .antibiotic-category-box {
-  background: #ffffff; /* pure white background for clinical simplicity */
-  border-radius: 12px;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+  background: var(--bg-panel);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: var(--transition-smooth);
-}
-
-.antibiotic-category-box:hover {
-  box-shadow: var(--shadow-md);
-  border-color: #cbd5e1;
+  gap: 8px;
+  transition: var(--transition-theme);
 }
 
 .category-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border-bottom: 1px solid #f1f5f9; /* Soft solid separator */
-  padding-bottom: 8px;
-  margin-bottom: 2px;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+  margin-bottom: 0;
 }
 
 .antibiotic-category-box h4 {
   font-family: var(--font-title);
-  font-size: 0.92rem;
+  font-size: 0.85rem;
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
@@ -440,24 +558,24 @@ button.secondary-btn:hover {
   font-size: 0.68rem;
   font-weight: 600;
   border-radius: 5px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  background-color: var(--btn-sec-bg);
+  color: var(--btn-sec-text);
   cursor: pointer;
   text-align: center;
-  transition: var(--transition-smooth);
+  transition: var(--transition-theme);
 }
 
 .category-toggle:hover {
-  background: #eff6ff;
-  color: #2563eb;
-  border-color: #bfdbfe;
+  background-color: var(--accent-light);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
 }
 
 .category-toggle.active {
-  background: #eff6ff;
-  color: #2563eb;
-  border-color: #bfdbfe;
+  background-color: var(--accent-light);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
   box-shadow: none;
 }
 
@@ -465,7 +583,7 @@ button.secondary-btn:hover {
 .antibiotic-filters.vertical-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   flex-grow: 1;
 }
 
@@ -475,49 +593,49 @@ button.secondary-btn:hover {
   align-items: center;
   gap: 4px;
   width: 100%;
-  padding: 5px 8px;
+  padding: 4px 8px;
   font-size: 0.72rem; /* Compact, highly readable */
   line-height: 1.2;
   font-weight: 500;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  color: var(--text-medium) !important;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--pill-border);
+  background-color: var(--pill-bg);
+  color: var(--pill-text) !important;
   cursor: pointer;
   text-align: left;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-  transition: var(--transition-smooth);
+  transition: var(--transition-theme);
 }
 
 .antibiotic-category-box .antibiotic-btn:hover {
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color: var(--text-main) !important;
+  border-color: var(--accent-blue) !important;
+  color: var(--accent-blue) !important;
+  background-color: var(--pill-bg) !important;
 }
 
-/* Active Selected Chip Style: light blue background, blue border, blue text */
+/* Active Selected Chip Style */
 .antibiotic-category-box .antibiotic-btn.selected,
 .antibiotic-category-box .antibiotic-btn.selected:hover,
 .antibiotic-btn.selected,
 .antibiotic-btn.selected:hover {
-  background-color: #eff6ff !important;
-  border: 1px solid #bfdbfe !important;
-  color: #2563eb !important;
+  background-color: var(--pill-checked-bg) !important;
+  border: 1px solid var(--pill-checked-border) !important;
+  color: var(--pill-checked-text) !important;
   font-weight: 600;
   box-shadow: none;
-  padding: 5px 8px; /* No height jump since border width remains 1px */
+  padding: 4px 8px;
 }
 
 /* Add checkmark dynamically */
 .antibiotic-category-box .antibiotic-btn.selected::before,
 .antibiotic-btn.selected::before {
   content: "✓";
-  color: #2563eb;
+  color: var(--pill-checked-text);
   font-weight: 700;
   margin-right: 4px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   flex-shrink: 0;
   line-height: 1;
 }
@@ -590,11 +708,11 @@ button.secondary-btn:hover {
 .toast {
   visibility: hidden;
   min-width: 180px;
-  background-color: var(--color-success);
-  color: #ffffff;
+  background-color: var(--text-main);
+  color: var(--bg-panel);
   font-weight: 600;
   text-align: center;
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   padding: 12px 24px;
   position: fixed;
   z-index: 1000;
@@ -602,7 +720,8 @@ button.secondary-btn:hover {
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.9rem;
-  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
   opacity: 0;
   transition: opacity 0.3s ease, bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.3s;
 }
@@ -680,4 +799,9 @@ button.secondary-btn:hover {
   button {
     width: 100%;
   }
+}
+
+/* Transição suave de textos e títulos gerais */
+h1, h2, h3, h4, label, p, span, .subtitle, .citation, .page-footer {
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }

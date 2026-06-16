@@ -427,6 +427,8 @@ function classifySegment(segment, abName) {
   if (/resistente/.test(s)) return ["R"];
   if (/intermediario/.test(s)) return ["I"];
   if (/sensivel/.test(s)) return ["S"];
+  if (/presenca\s+de\s+sinergis/i.test(s) || /presenca\s+de\s+sinergia/i.test(s)) return ["S"];
+  if (/ausencia\s+de\s+sinergis/i.test(s) || /ausencia\s+de\s+sinergia/i.test(s)) return ["R"];
 
   const tokens = [];
   const re = /(?:^|\s)([SRID])(?=\s|$)/gi;
@@ -667,6 +669,19 @@ function parseCultureBlock(block, manualMaterial) {
 
   const isBacterioscopico = block.titulo && block.titulo.toUpperCase().includes("BACTERIOSCÓPICO");
 
+  function getOrCreateOrg(name) {
+    let org = organisms.find(o => canonicalKey(o.name) === canonicalKey(name));
+    if (!org) {
+      org = {
+        name: name,
+        antibiogram: { R: [], S: [], I: [], D: [], Obs: [] },
+        resistanceNotes: []
+      };
+      organisms.push(org);
+    }
+    return org;
+  }
+
   for (const line of block.linhas) {
     const mResult = line.match(/^(CULTURA\s+(?:AERÓBIA|PARA\s+ANAERÓBIOS))\s+(Positiva|Negativa)/i);
     if (mResult) {
@@ -684,20 +699,18 @@ function parseCultureBlock(block, manualMaterial) {
       continue;
     }
 
-    // Se for bacterioscópico, tenta achar achados de coloração de Gram de forma estruturada
     if (isBacterioscopico) {
       const parts = line.split('\t').map(p => p.trim()).filter(Boolean);
       if (parts.length >= 2 && /BACTERIOSCÓPICO/i.test(parts[0])) {
         const finding = parts[1];
         if (finding && !/Coloração/i.test(finding) && !/Ausência/i.test(finding)) {
-          organisms.push(cleanOrganismName(finding));
+          const orgName = cleanOrganismName(finding);
+          getOrCreateOrg(orgName);
           isPositive = true;
         }
       }
     }
 
-    // Tenta identificar se a linha contém um microrganismo
-    // 1. Linhas com índice numérico limitado a 1 ou 2 dígitos (evita conflitos com números de registro/pedido)
     const mOrg = line.match(/^([1-9]\d?)\s*-\s*(.+)$/);
     if (mOrg) {
       isPositive = true;
@@ -710,13 +723,11 @@ function parseCultureBlock(block, manualMaterial) {
       
       orgName = cleanOrganismName(orgName);
       
-      if (orgName && !organisms.includes(orgName) && !/^Cl[ií]nica:/i.test(orgName)) {
-        organisms.push(orgName);
+      if (orgName && !/^Cl[ií]nica:/i.test(orgName)) {
+        getOrCreateOrg(orgName);
       }
-      // Não fazemos "continue" para permitir que o antibiótico fundido na mesma linha seja parseado!
     }
 
-    // 2. Linhas sem índice numérico, mas que contêm termos biológicos conhecidos
     const PATHOGENS_RX = /\b(Acinetobacter|Streptococcus|Escherichia|Pseudomonas|Staphylococcus|Klebsiella|Candida|Enterococcus|Nakaseomyces|Enterobacter|Serratia|Proteus|Flora normal)\b/i;
     if (!mOrg && PATHOGENS_RX.test(line)) {
       let orgName = line.trim();
@@ -728,9 +739,13 @@ function parseCultureBlock(block, manualMaterial) {
       
       orgName = cleanOrganismName(orgName);
       
-      if (orgName && !organisms.includes(orgName) && !/^(CULTURA|EXAME|BACTERIOSCÓPICO|CONCENTRAÇÃO|CIM|VALOR|MÉTODO|LEGENDA|M\.I\.C)/i.test(orgName)) {
+      if (/consultar|ccih|observac|nota\b|metodo|semeadura|identificac|especifico/i.test(orgName)) {
+        continue;
+      }
+      
+      if (orgName && !/^(CULTURA|EXAME|BACTERIOSCÓPICO|CONCENTRAÇÃO|CIM|VALOR|MÉTODO|LEGENDA|M\.I\.C)/i.test(orgName)) {
         isPositive = true;
-        organisms.push(orgName);
+        getOrCreateOrg(orgName);
       }
     }
 
@@ -739,73 +754,121 @@ function parseCultureBlock(block, manualMaterial) {
       isIdenticalLink = true;
       continue;
     }
-
-    const kpc = line.match(/\b(KPC|NDM|VIM|IMP|OXA[- ]?48)\s*:\s*POSITIVO\b/i);
-    if (kpc) {
-      resistanceNotes.push(`${kpc[1].toUpperCase().replace(/\s+/g, "")}: positivo`);
-    }
-  }
-
-  // Tentar extrair antibiograma padrão das linhas se for positivo e não for bacterioscópico
-  if (isPositive && !isBacterioscopico) {
-    let pendingAntimicrobial = null;
-    for (const line of block.linhas) {
-      if (pendingAntimicrobial && looksLikeResultOnlyLine(line)) {
-        applyAntimicrobialClassesToObj(pendingAntimicrobial, line, antibiogram);
-        pendingAntimicrobial = null;
-        continue;
-      }
-
-      const singleAb = getSingleAntimicrobialName(line);
-      if (singleAb) {
-        pendingAntimicrobial = singleAb;
-        continue;
-      }
-
-      if (parseAntimicrobialLineToObj(line, antibiogram)) {
-        pendingAntimicrobial = null;
-      }
-    }
   }
 
   if (isPositive && organisms.length === 0 && isIdenticalLink) {
-    organisms.push("Identificação idêntica");
+    getOrCreateOrg("Identificação idêntica");
   }
 
-  // Varredura da seção de observações/notas para capturar drogas adicionais (ex: Polimixina B)
-  let currentObsCategory = null;
-  for (let i = 0; i < block.linhas.length; i++) {
-    const line = block.linhas[i];
-    const norm = normalizePlain(line);
+  if (isPositive && !isBacterioscopico) {
+    let pendingAntimicrobial = null;
+    let currentOrg = null;
 
-    if (norm === "sensivel" || norm === "sensivel dose padrao") {
-      currentObsCategory = "S";
-      continue;
-    } else if (norm === "resistente") {
-      currentObsCategory = "R";
-      continue;
-    } else if (norm === "intermediario") {
-      currentObsCategory = "I";
-      continue;
-    } else if (norm === "sensivel dose dependente" || norm === "sdd") {
-      currentObsCategory = "D";
-      continue;
-    }
-
-    if (currentObsCategory) {
-      const matches = findAntimicrobials(line);
-      if (matches.length > 0) {
-        const hasValueIndicator = /valor|mic|m\.i\.c\.|[\d,.]+\s*(?:µg|ug|mg)/i.test(line);
-        if (hasValueIndicator) {
-          for (const m of matches) {
-            const label = normalizeAntimicrobialName(m.name);
-            uniqPush(antibiogram[currentObsCategory], label);
+    for (const line of block.linhas) {
+      const mOrg = line.match(/^([1-9]\d?)\s*-\s*(.+)$/);
+      let foundOrg = null;
+      if (mOrg) {
+        let orgName = mOrg[2].trim();
+        const matches = findAntimicrobials(orgName);
+        if (matches.length > 0) {
+          orgName = orgName.slice(0, matches[0].index).trim();
+        }
+        orgName = cleanOrganismName(orgName);
+        if (orgName && !/^Cl[ií]nica:/i.test(orgName)) {
+          foundOrg = getOrCreateOrg(orgName);
+        }
+      } else {
+        const PATHOGENS_RX = /\b(Acinetobacter|Streptococcus|Escherichia|Pseudomonas|Staphylococcus|Klebsiella|Candida|Enterococcus|Nakaseomyces|Enterobacter|Serratia|Proteus|Flora normal)\b/i;
+        if (PATHOGENS_RX.test(line)) {
+          let orgName = line.trim();
+          const matches = findAntimicrobials(orgName);
+          if (matches.length > 0) {
+            orgName = orgName.slice(0, matches[0].index).trim();
+          }
+          orgName = orgName.replace(/^[-–—\s]+/, "").trim();
+          orgName = cleanOrganismName(orgName);
+          if (/consultar|ccih|observac|nota\b|metodo|semeadura|identificac|especifico/i.test(orgName)) {
+            // Ignora notas como "Consultar CCIH"
+          } else if (orgName && !/^(CULTURA|EXAME|BACTERIOSCÓPICO|CONCENTRAÇÃO|CIM|VALOR|MÉTODO|LEGENDA|M\.I\.C)/i.test(orgName)) {
+            foundOrg = getOrCreateOrg(orgName);
           }
         }
       }
-      
-      if (!line || /^(Notas:|Obs:|Observações:)/i.test(line)) {
-        currentObsCategory = null;
+
+      if (foundOrg) {
+        currentOrg = foundOrg;
+      }
+
+      const kpc = line.match(/\b(KPC|NDM|VIM|IMP|OXA[- ]?48)\s*:\s*POSITIVO\b/i);
+      if (kpc) {
+        const note = `${kpc[1].toUpperCase().replace(/\s+/g, "")}: positivo`;
+        resistanceNotes.push(note);
+        if (currentOrg) {
+          currentOrg.resistanceNotes.push(note);
+        }
+      }
+
+      if (currentOrg) {
+        if (pendingAntimicrobial && looksLikeResultOnlyLine(line)) {
+          applyAntimicrobialClassesToObj(pendingAntimicrobial, line, currentOrg.antibiogram);
+          applyAntimicrobialClassesToObj(pendingAntimicrobial, line, antibiogram);
+          pendingAntimicrobial = null;
+          continue;
+        }
+
+        const singleAb = getSingleAntimicrobialName(line);
+        if (singleAb) {
+          pendingAntimicrobial = singleAb;
+          continue;
+        }
+
+        const parsed1 = parseAntimicrobialLineToObj(line, currentOrg.antibiogram);
+        const parsed2 = parseAntimicrobialLineToObj(line, antibiogram);
+        if (parsed1 || parsed2) {
+          pendingAntimicrobial = null;
+        }
+      }
+    }
+
+    let currentObsCategory = null;
+    for (let i = 0; i < block.linhas.length; i++) {
+      const line = block.linhas[i];
+      const norm = normalizePlain(line);
+
+      if (norm === "sensivel" || norm === "sensivel dose padrao") {
+        currentObsCategory = "S";
+        continue;
+      } else if (norm === "resistente") {
+        currentObsCategory = "R";
+        continue;
+      } else if (norm === "intermediario") {
+        currentObsCategory = "I";
+        continue;
+      } else if (norm === "sensivel dose dependente" || norm === "sdd") {
+        currentObsCategory = "D";
+        continue;
+      }
+
+      if (currentObsCategory) {
+        const matches = findAntimicrobials(line);
+        if (matches.length > 0) {
+          const hasValueIndicator = /valor|mic|m\.i\.c\.|[\d,.]+\s*(?:µg|ug|mg)/i.test(line);
+          if (hasValueIndicator) {
+            for (const m of matches) {
+              const label = normalizeAntimicrobialName(m.name);
+              uniqPush(antibiogram[currentObsCategory], label);
+              if (organisms.length === 1) {
+                uniqPush(organisms[0].antibiogram[currentObsCategory], label);
+              } else if (currentOrg) {
+                uniqPush(currentOrg.antibiogram[currentObsCategory], label);
+              }
+            }
+          }
+        }
+        
+        if (!line || /^(Notas:|Obs:|Observações:)/i.test(line)) {
+          currentObsCategory = null;
+        }
       }
     }
   }
@@ -874,7 +937,8 @@ function parseCimBlock(block, manualMaterial) {
     site,
     isCim: true,
     organism,
-    antibiogram
+    antibiogram,
+    organisms: organism ? [{ name: organism, antibiogram, resistanceNotes: [] }] : []
   };
 }
 
@@ -916,7 +980,9 @@ function segmentIntoBlocks(text) {
         titulo: null,
         linhas: []
       };
-      continue;
+      if (isTimestamp || mPedido) {
+        continue;
+      }
     }
 
     const mColetado = line.match(/^Coletado\s+em:\s*(\d{2}\/\d{2}\/\d{4})(?:\s+(\d{2}:\d{2}))?/i);
@@ -948,6 +1014,55 @@ function segmentIntoBlocks(text) {
   }
 
   return blocks;
+}
+
+function resolveAntibiogramConflicts(antibiogram) {
+  const allR = new Set((antibiogram.R || []).map(canonicalKey));
+  const allI = new Set((antibiogram.I || []).map(canonicalKey));
+  const allD = new Set((antibiogram.D || []).map(canonicalKey));
+  const allS = new Set((antibiogram.S || []).map(canonicalKey));
+
+  antibiogram.S = (antibiogram.S || []).filter(drug => !allR.has(canonicalKey(drug)) && !allI.has(canonicalKey(drug)) && !allD.has(canonicalKey(drug)));
+  antibiogram.D = (antibiogram.D || []).filter(drug => !allR.has(canonicalKey(drug)) && !allI.has(canonicalKey(drug)));
+  antibiogram.I = (antibiogram.I || []).filter(drug => !allR.has(canonicalKey(drug)));
+  antibiogram.Obs = (antibiogram.Obs || []).filter(drug => !allR.has(canonicalKey(drug)) && !allI.has(canonicalKey(drug)) && !allD.has(canonicalKey(drug)) && !allS.has(canonicalKey(drug)));
+}
+
+function consolidateOrganisms(allOrganisms) {
+  const grouped = {};
+  for (const org of allOrganisms) {
+    if (!org || !org.name) continue;
+    const key = canonicalKey(org.name);
+    if (!grouped[key]) {
+      grouped[key] = {
+        name: org.name,
+        antibiogram: { R: [], S: [], I: [], D: [], Obs: [] },
+        resistanceNotes: []
+      };
+    }
+    // Merge antibiograms
+    for (const cls of ["R", "S", "I", "D", "Obs"]) {
+      if (org.antibiogram && org.antibiogram[cls]) {
+        for (const drug of org.antibiogram[cls]) {
+          uniqPush(grouped[key].antibiogram[cls], drug);
+        }
+      }
+    }
+    // Merge resistance notes
+    if (org.resistanceNotes) {
+      for (const note of org.resistanceNotes) {
+        if (!grouped[key].resistanceNotes.includes(note)) {
+          grouped[key].resistanceNotes.push(note);
+        }
+      }
+    }
+  }
+  
+  const result = Object.values(grouped);
+  for (const org of result) {
+    resolveAntibiogramConflicts(org.antibiogram);
+  }
+  return result;
 }
 
 function consolidateExams(parsedExams) {
@@ -985,56 +1100,39 @@ function consolidateExams(parsedExams) {
       const timeLabel = times.length > 0 ? times.join("/") : null;
 
       if (positiveBottles > 0) {
-        let organisms = [];
+        const allOrgs = [];
         for (const b of cultureBottles) {
-          if (b.isPositive) {
-            organisms.push(...b.organisms);
+          if (b.isPositive && b.organisms) {
+            allOrgs.push(...b.organisms);
           }
         }
         for (const c of cimTests) {
-          if (c.organism) {
-            organisms.push(c.organism);
+          if (c.organisms) {
+            allOrgs.push(...c.organisms);
           }
         }
-        organisms = [...new Set(organisms.filter(o => o && o !== "Identificação idêntica"))];
-        if (organisms.length === 0) {
-          organisms = ["Cultura Positiva"];
+
+        const consolidatedOrgs = consolidateOrganisms(allOrgs);
+        const orgStrings = [];
+        for (const org of consolidatedOrgs) {
+          const atbParts = [];
+          if (org.antibiogram.S.length) atbParts.push(`S: ${org.antibiogram.S.join(", ")}`);
+          if (org.antibiogram.R.length) atbParts.push(`R: ${org.antibiogram.R.join(", ")}`);
+          if (org.antibiogram.I.length) atbParts.push(`I: ${org.antibiogram.I.join(", ")}`);
+          if (org.antibiogram.D.length) atbParts.push(`D: ${org.antibiogram.D.join(", ")}`);
+          if (org.antibiogram.Obs.length) atbParts.push(`Obs: ${org.antibiogram.Obs.join(", ")}`);
+          
+          const atbLabel = atbParts.length > 0 ? ` (${atbParts.join(" | ")})` : "";
+          const notesLabel = org.resistanceNotes && org.resistanceNotes.length > 0
+            ? ` [${[...new Set(org.resistanceNotes)].join("; ")}]`
+            : "";
+          orgStrings.push(`${org.name}${atbLabel}${notesLabel}`);
         }
-
-        const consolidatedAtb = { R: [], S: [], I: [], D: [], Obs: [] };
-        const mergeAtb = (atb) => {
-          if (!atb) return;
-          for (const cls of ["R", "S", "I", "D", "Obs"]) {
-            if (atb[cls]) {
-              for (const drug of atb[cls]) {
-                uniqPush(consolidatedAtb[cls], drug);
-              }
-            }
-          }
-        };
-
-        for (const b of cultureBottles) mergeAtb(b.antibiogram);
-        for (const c of cimTests) mergeAtb(c.antibiogram);
-
-        const atbParts = [];
-        if (consolidatedAtb.R.length) atbParts.push(`R: ${consolidatedAtb.R.join(", ")}`);
-        if (consolidatedAtb.S.length) atbParts.push(`S: ${consolidatedAtb.S.join(", ")}`);
-        if (consolidatedAtb.I.length) atbParts.push(`I: ${consolidatedAtb.I.join(", ")}`);
-        if (consolidatedAtb.D.length) atbParts.push(`D: ${consolidatedAtb.D.join(", ")}`);
-        if (consolidatedAtb.Obs.length) atbParts.push(`Obs: ${consolidatedAtb.Obs.join(", ")}`);
-
-        const atbLabel = atbParts.length > 0 ? ` (${atbParts.join(" | ")})` : "";
-
-        const resistanceNotes = [];
-        for (const b of cultureBottles) {
-          resistanceNotes.push(...b.resistanceNotes);
-        }
-        const resistanceLabel = resistanceNotes.length > 0 ? ` [${[...new Set(resistanceNotes)].join("; ")}]` : "";
 
         const dateFormatted = formatCollectionDate(date, timeLabel);
         const dateLabel = dateFormatted ? `(${dateFormatted}) ` : "";
 
-        outputLines.push(`${dateLabel}Hemocultura${sitesLabel}: ${organisms.join(" + ")} (${positiveBottles}/${totalBottles} frascos positivos)${atbLabel}${resistanceLabel}`);
+        outputLines.push(`${dateLabel}Hemocultura${sitesLabel}: ${orgStrings.join(" + ")} (${positiveBottles}/${totalBottles} frascos positivos)`);
       } else if (totalBottles > 0) {
         const dateFormatted = formatCollectionDate(date, timeLabel);
         const dateLabel = dateFormatted ? `(${dateFormatted}) ` : "";
@@ -1065,36 +1163,31 @@ function consolidateExams(parsedExams) {
       if (cultureExams.length > 0) {
         const positiveExams = cultureExams.filter(e => e.isPositive);
         if (positiveExams.length > 0) {
-          let organisms = [];
+          const allOrgs = [];
           for (const e of positiveExams) {
-            organisms.push(...e.organisms);
-          }
-          organisms = [...new Set(organisms)];
-
-          const consolidatedAtb = { R: [], S: [], I: [], D: [], Obs: [] };
-          const mergeAtb = (atb) => {
-            if (!atb) return;
-            for (const cls of ["R", "S", "I", "D", "Obs"]) {
-              if (atb[cls]) {
-                for (const drug of atb[cls]) {
-                  uniqPush(consolidatedAtb[cls], drug);
-                }
-              }
+            if (e.organisms) {
+              allOrgs.push(...e.organisms);
             }
-          };
+          }
+          
+          const consolidatedOrgs = consolidateOrganisms(allOrgs);
+          const orgStrings = [];
+          for (const org of consolidatedOrgs) {
+            const atbParts = [];
+            if (org.antibiogram.S.length) atbParts.push(`S: ${org.antibiogram.S.join(", ")}`);
+            if (org.antibiogram.R.length) atbParts.push(`R: ${org.antibiogram.R.join(", ")}`);
+            if (org.antibiogram.I.length) atbParts.push(`I: ${org.antibiogram.I.join(", ")}`);
+            if (org.antibiogram.D.length) atbParts.push(`D: ${org.antibiogram.D.join(", ")}`);
+            if (org.antibiogram.Obs.length) atbParts.push(`Obs: ${org.antibiogram.Obs.join(", ")}`);
+            
+            const atbLabel = atbParts.length > 0 ? ` (${atbParts.join(" | ")})` : "";
+            const notesLabel = org.resistanceNotes && org.resistanceNotes.length > 0
+              ? ` [${[...new Set(org.resistanceNotes)].join("; ")}]`
+              : "";
+            orgStrings.push(`${org.name}${atbLabel}${notesLabel}`);
+          }
 
-          for (const e of cultureExams) mergeAtb(e.antibiogram);
-
-          const atbParts = [];
-          if (consolidatedAtb.R.length) atbParts.push(`R: ${consolidatedAtb.R.join(", ")}`);
-          if (consolidatedAtb.S.length) atbParts.push(`S: ${consolidatedAtb.S.join(", ")}`);
-          if (consolidatedAtb.I.length) atbParts.push(`I: ${consolidatedAtb.I.join(", ")}`);
-          if (consolidatedAtb.D.length) atbParts.push(`D: ${consolidatedAtb.D.join(", ")}`);
-          if (consolidatedAtb.Obs.length) atbParts.push(`Obs: ${consolidatedAtb.Obs.join(", ")}`);
-
-          const atbLabel = atbParts.length > 0 ? ` (${atbParts.join(" | ")})` : "";
-
-          outputLines.push(`${dateLabel}${mat}: ${organisms.join(" + ")}${atbLabel}`);
+          outputLines.push(`${dateLabel}${mat}: ${orgStrings.join(" + ")}`);
         } else {
           outputLines.push(`${dateLabel}${mat}: Negativa`);
         }
@@ -1103,7 +1196,9 @@ function consolidateExams(parsedExams) {
         if (positiveBacs.length > 0) {
           let findings = [];
           for (const e of positiveBacs) {
-            findings.push(...e.organisms);
+            if (e.organisms) {
+              findings.push(...e.organisms.map(o => typeof o === "string" ? o : o.name));
+            }
           }
           findings = [...new Set(findings)];
           outputLines.push(`${dateLabel}${mat} (Bacterioscópico): ${findings.join(", ")}`);
@@ -1226,3 +1321,35 @@ function showToast(message) {
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 2000);
 }
+
+// ---------- Alternância de Tema (Light/Dark Mode) ----------
+(function setupTheme() {
+  const themeToggle = document.getElementById("themeToggle");
+  let currentTheme = "light";
+  
+  try {
+    currentTheme = localStorage.getItem("theme") || "light";
+  } catch(e) {}
+
+  if (currentTheme === "dark") {
+    document.body.classList.add("dark-theme");
+    if (themeToggle) {
+      const icon = themeToggle.querySelector(".theme-icon");
+      if (icon) icon.textContent = "☀️";
+    }
+  }
+
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("dark-theme");
+      const isDark = document.body.classList.contains("dark-theme");
+      
+      try {
+        localStorage.setItem("theme", isDark ? "dark" : "light");
+      } catch(e) {}
+      
+      const icon = themeToggle.querySelector(".theme-icon");
+      if (icon) icon.textContent = isDark ? "☀️" : "🌙";
+    });
+  }
+})();
